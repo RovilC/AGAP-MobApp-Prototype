@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fil">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0a2a66">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AGAP">
+<title>AGAP · Prototype</title>
+<link rel="icon" type="image/png" href="assets/img/favicon.png">
+<link rel="apple-touch-icon" href="assets/img/logo-192.png">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<div id="stage">
+  <div id="device"><div id="screen" aria-live="polite"></div></div>
+  <div id="hint">Pindutin nang matagal ang logo o <kbd>`</kbd> / <kbd>F2</kbd> para sa facilitator panel · <kbd>Esc</kbd> bumalik</div>
+</div>
+
+<aside id="fac" aria-label="Facilitator panel">
+  <header><img src="assets/img/logo-96.png" alt="" style="width:26px;height:26px;border-radius:50%"><b>Facilitator panel</b><button id="facClose" aria-label="Isara">×</button></header>
+  <div class="scroll"></div>
+</aside>
+<button id="facTab">FACILITATOR</button>
+
+<script src="assets/js/icons.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/screens.js"></script>
+<script src="assets/js/shared.js"></script>
+<script>boot();</script>
+</body>
+</html>
