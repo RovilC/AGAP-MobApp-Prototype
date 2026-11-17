@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fil">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f1a33">
+<title>AGAP · Remote Controller</title>
+<link rel="icon" type="image/png" href="assets/img/favicon.png">
+<style>
+@font-face{font-family:Inter;font-weight:400;src:url(assets/fonts/Inter-Regular.woff) format("woff")}
+@font-face{font-family:Inter;font-weight:600;src:url(assets/fonts/Inter-SemiBold.woff) format("woff")}
+@font-face{font-family:Inter;font-weight:800;src:url(assets/fonts/Inter-ExtraBold.woff) format("woff")}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:#0b1428;color:#e7eefb;min-height:100vh}
+header{display:flex;align-items:center;gap:10px;padding:14px 16px;background:#0f1a33;border-bottom:1px solid #22325a;position:sticky;top:0;z-index:5}
+header img{width:30px;height:30px;border-radius:50%}
+header b{font-size:16px;flex:1}
+.pill{font-size:12px;padding:4px 10px;border-radius:12px;background:#3a2a10;color:#f6c26b;font-weight:600}
+.pill.on{background:#103a26;color:#6ee7a8}
+main{max-width:640px;margin:0 auto;padding:16px}
+.card{background:#13213f;border:1px solid #22325a;border-radius:14px;padding:14px;margin-bottom:14px}
+h3{margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#7f95c2}
+.code{display:flex;gap:8px}
+.code input{flex:1;font:800 28px Inter,sans-serif;letter-spacing:10px;text-align:center;background:#0b1428;border:1.5px solid #2a3d69;border-radius:12px;color:#fff;height:58px;min-width:0}
+button{font:600 14px Inter,sans-serif;color:#e7eefb;background:#1b2a4d;border:1px solid #2a3d69;border-radius:10px;padding:12px 10px;cursor:pointer;text-align:left;line-height:1.25;min-height:52px}
+button:active{transform:scale(.98)}
+button small{display:block;font-weight:400;color:#9fb3d9;font-size:11.5px;margin-top:2px}
+button.primary{background:#0b5ed7;border-color:#3d86f0;text-align:center}
+button.hot{background:#7a1f1a;border-color:#b3322b}
+button.good{background:#14532d;border-color:#22804a}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{font-size:14px;line-height:1.75}
+.stat b{color:#fff}
+.big{font-size:22px;font-weight:800;color:#fff}
+select{width:100%;background:#0b1428;color:#e7eefb;border:1px solid #2a3d69;border-radius:10px;padding:12px;font:14px Inter,sans-serif}
+.muted{color:#9fb3d9;font-size:13px;line-height:1.5}
+.flash{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#0b5ed7;color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+.flash.show{opacity:1}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<header><img src="assets/img/logo-96.png" alt=""><b>AGAP · Remote Controller</b><span id="pill" class="pill">offline</span></header>
+<main>
+  <div class="card">
+    <h3>1 · Ilagay ang code mula sa cellphone ng tester</h3>
+    <div class="code"><input id="code" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off"><button id="connect" class="primary" style="width:120px">Ikonekta</button></div>
+    <p class="muted" style="margin:10px 0 0">Makikita ang code sa unang screen ng app (Pumili ng demo) o sa facilitator panel. Kailangan ng internet ang dalawang device.</p>
+  </div>
+
+  <div class="card">
+    <h3>Lagay ng app ng tester</h3>
+    <div id="stat" class="stat muted">Hinihintay ang cellphone…</div>
+  </div>
+
+  <div id="controls" class="hide">
+    <div class="card"><h3>Kuryente at baterya</h3><div class="grid">
+      <button class="hot" data-k="cut">⚡ Nawalan ng kuryente<small>abiso + tanong kung itutuloy</small></button>
+      <button class="good" data-k="back">Bumalik ang kuryente<small>tanong kung lilipat</small></button>
+      <button data-k="lowbat">Mahina ang baterya<small>15%</small></button>
+      <button data-k="drop">Bumaba ang init<small>biomass / solar</small></button>
+      <button data-k="insuff">Hindi sapat ang kuryente<small>bago magsimula</small></button>
+      <button data-k="S06">Bukas ang pinto</button>
+    </div></div>
+
+    <div class="card"><h3>Makina at koneksyon</h3><div class="grid">
+      <button data-k="S05">Sobrang init</button>
+      <button data-k="S07">Problema sa makina</button>
+      <button data-k="emer">Pang-emerhensiyang paghinto</button>
+      <button data-k="lost">Nawala ang koneksyon</button>
+      <button data-k="S18">Tapos na ang session</button>
+      <button data-k="S14">Walang bagong abiso</button>
+    </div></div>
+
+    <div class="card"><h3>Orasan ng pagpapatuyo</h3>
+      <select id="speed">
+        <option value="demo30">Pang-test (~30 seg ang buong batch)</option>
+        <option value="figma">Figma demo (~50 seg)</option>
+        <option value="fast">Mabilis (~3 min)</option>
+        <option value="med">Katamtaman (~8 min)</option>
+        <option value="slow">Mabagal (~20 min)</option>
+        <option value="real">Totoong oras (6 oras 20 min)</option>
+      </select>
+      <div class="grid" style="margin-top:8px"><button data-k="skip1">+1 oras</button><button data-k="finish">Tapusin ang batch</button></div>
+    </div>
+
+    <div id="sharedBox" class="card hide"><h3>Ibang cellphone (Ate Lita)</h3><div class="grid">
+      <button data-k="oLock">Nag-aayos si Ate Lita</button>
+      <button data-k="oLockEnd">Natapos ang kandado</button>
+      <button data-k="oStart">Nagsimula ng batch</button>
+      <button data-k="oStop">Inihinto ang batch</button>
+      <button data-k="oRemoved">Naalis na ang isda</button>
+      <button data-k="oBio">Sumagot: biomass</button>
+      <button data-k="oItigil">Sumagot: itigil</button>
+      <button data-k="oRace">Unahan sa pag-aayos</button>
+      <button data-k="myTimeout">Natapos ang 5 min mo</button>
+      <button data-k="syncFail">Hindi masuri ang makina</button>
+    </div></div>
+
+    <div class="card"><h3>Pumunta sa screen</h3>
+      <select id="jump"><option value="">— kinukuha ang listahan… —</option></select>
+      <div class="grid" style="margin-top:8px"><button id="backBtn">← Bumalik (Android back)</button><button id="reset" class="hot">I-reset ang demo<small>pindutin nang 2 beses</small></button></div>
+    </div>
+  </div>
+</main>
+<div id="flash" class="flash"></div>
+<script src="assets/js/mqttws.js"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  let cli = null, base = null, last = null, lastAt = 0, armed = 0;
+  try { $('code').value = localStorage.getItem('agap-ctrl-code') || ''; } catch (e) {}
+  function flash(t) { const f = $('flash'); f.textContent = t; f.classList.add('show'); clearTimeout(f._t); f._t = setTimeout(() => f.classList.remove('show'), 1400); }
+  function send(obj, label) { if (!cli || !cli.publish(base + '/cmd', JSON.stringify(obj))) { flash('Hindi pa nakakonekta'); return; } flash('Naipadala: ' + (label || obj.k || obj.t)); }
+  function render() {
+    const online = last && Date.now() - lastAt < 7000;
+    $('pill').textContent = !cli ? 'offline' : !cli.ok ? 'kumokonekta…' : online ? 'konektado sa cellphone' : 'hinihintay ang cellphone';
+    $('pill').className = 'pill' + (online ? ' on' : '');
+    $('controls').classList.toggle('hide', !cli);
+    if (!last) return;
+    const b = last.batch;
+    $('stat').className = 'stat';
+    $('stat').innerHTML = '<div class="big">' + (last.screen || '') + '</div>' +
+      'Senaryo: <b>' + (last.scenario === 'shared' ? 'Shared Batch' : last.scenario === 'orig' ? 'Orihinal' : '—') + '</b> · ' + (last.loggedIn ? 'naka-login' : 'hindi pa naka-login') + '<br>' +
+      'Batch: <b>' + (b ? b.fish + ' · ' + b.pct + '% · ' + b.elapsed + ' · ' + b.status + ' · ' + b.mode : 'wala') + '</b><br>' +
+      'Kuryente: <b>' + (last.power === 'grid' ? 'may kuryente' : 'WALA') + '</b> · Baterya <b>' + last.battery + '%</b>' +
+      (last.scenario === 'shared' ? '<br>Kandado: <b>' + (last.lock || 'libre') + '</b>' + (last.waiting ? ' · naghihintay alisin ang isda' : '') : '') +
+      (online ? '' : '<br><span style="color:#f6b26b">Walang balita mula sa cellphone. Bukas ba ang app at may internet?</span>');
+    $('sharedBox').classList.toggle('hide', last.scenario !== 'shared');
+    if (document.activeElement !== $('speed')) $('speed').value = last.speed || 'demo30';
+  }
+  setInterval(render, 1000);
+  $('connect').onclick = () => {
+    const code = $('code').value.replace(/\D/g, '');
+    if (code.length !== 4) { flash('4 na numero ang code'); return; }
+    try { localStorage.setItem('agap-ctrl-code', code); } catch (e) {}
+    if (cli) cli.end();
+    last = null; base = AGAP_TOPIC(code);
+    $('stat').className = 'stat muted'; $('stat').textContent = 'Hinihintay ang cellphone na may code ' + code + '…';
+    cli = new MiniMQTT({
+      clientId: 'agap-ctrl-' + Math.random().toString(36).slice(2, 9),
+      onStatus: render,
+      onConnect: () => { cli.subscribe(base + '/state'); cli.subscribe(base + '/list'); cli.publish(base + '/cmd', JSON.stringify({ t: 'list' })); },
+      onMessage: (topic, msg) => {
+        if (topic === base + '/state') { try { last = JSON.parse(msg); lastAt = Date.now(); } catch (e) {} render(); }
+        if (topic === base + '/list') { try { const l = JSON.parse(msg); $('jump').innerHTML = '<option value="">— piliin ang screen —</option>' + l.map((x) => '<option value="' + x[0] + '">' + x[1].replace(/</g, '&lt;') + '</option>').join(''); } catch (e) {} }
+      }
+    });
+    render();
+  };
+  document.querySelectorAll('[data-k]').forEach((b) => b.onclick = () => send({ t: 'fac', k: b.dataset.k }, b.firstChild.textContent.trim()));
+  $('speed').onchange = (e) => send({ t: 'speed', v: e.target.value }, 'bilis');
+  $('jump').onchange = (e) => { if (e.target.value) { send({ t: 'go', s: e.target.value }, 'screen'); e.target.value = ''; } };
+  $('backBtn').onclick = () => send({ t: 'back' }, 'bumalik');
+  $('reset').onclick = () => { if (Date.now() - armed > 3000) { armed = Date.now(); flash('Pindutin ulit para i-reset'); return; } armed = 0; send({ t: 'reset' }, 'reset'); };
+  $('code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('connect').click(); });
+  if ($('code').value.length === 4 && /[?&]auto=1/.test(location.search)) $('connect').click();
+})();
+</script>
+</body>
+</html>

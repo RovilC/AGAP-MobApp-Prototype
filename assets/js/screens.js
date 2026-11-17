@@ -14,7 +14,8 @@
   U.ring = (pct) => { const r = 32, c = 2 * Math.PI * r; return '<div class="ring"><svg width="76" height="76" viewBox="0 0 76 76"><circle cx="38" cy="38" r="' + r + '" fill="none" stroke="#bbdefb" stroke-width="8"/><circle cx="38" cy="38" r="' + r + '" fill="none" stroke="#0b5ed7" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + (c * (1 - pct / 100)).toFixed(1) + '" style="transition:stroke-dashoffset .6s"/></svg><b>' + pct + '%</b></div>'; };
   U.banner = (tone, icon, title, desc, act) => '<div class="banner ' + tone + (act ? ' tap' : '') + '" ' + (act ? (act[0] === ':' ? 'data-go="' + act.slice(1) + '"' : 'data-act="' + act + '"') : '') + '><span style="color:' + (tone === 'danger' ? 'var(--danger)' : tone === 'warn' ? '#b26a00' : tone === 'ok' ? 'var(--ok)' : 'var(--blue)') + '">' + ic(icon, 24) + '</span><div style="flex:1"><div class="t">' + title + '</div>' + (desc ? '<div class="p mt4">' + desc + '</div>' : '') + '</div>' + (act ? '<span class="blue" style="align-self:center">' + ic('chevron-right', 20) + '</span>' : '') + '</div>';
   U.check = (on, label, act, arg) => '<div class="check ' + (on ? 'on' : '') + '" data-act="' + act + '" data-arg="' + (arg || '') + '"><span class="box">' + (on ? ic('check', 16, '', 3) : '') + '</span><span>' + label + '</span></div>';
-  U.supplyIcon = (mode) => (mode === 'Biomass' ? 'flame' : mode === 'Baterya' ? 'battery' : 'plug');
+  U.supplyIcon = (mode) => (mode === 'Biomass' ? 'flame' : mode === 'Solar' || mode === 'Araw' ? 'sun' : mode === 'Baterya' ? 'battery' : 'plug');
+  U.modeLabel = (mode) => (mode === 'Biomass' ? 'Biomass' : mode === 'Solar' ? 'Araw (Solar)' : 'Kuryente');
 
   U.graph = (o) => { // o: {initial,target,dur,h,full}
     const W = 250, Hh = 146, x0 = 0, y0 = 6, y1 = 136;
@@ -43,10 +44,36 @@
   U.dashCard = (o) => {
     o = o || {};
     const sup = M.supply();
-    return '<div class="gradcard"><div class="greet">' + (o.greet || 'Magandang araw !') + '</div>' +
+    return '<div class="gradcard"><div class="greet">' + (o.greet || 'Magandang araw' + (S().operator ? ', ' + H.esc(S().operator) : '') + '!') + '</div>' +
       '<div class="line" data-act="tapConn" style="cursor:pointer">' + ic(H.connIcon(), 18) + (o.line || 'AGAP-001 • Nakakonekta') + '</div>' +
       '<div class="chips">' + U.chip(U.supplyIcon(sup), sup, 'dark') + U.chip(S().power === 'none' ? 'battery-low' : 'battery', Math.round(S().battery) + '%', 'dark') + '</div></div>';
   };
+  /* ---------- (bago) home cards: machine readiness, backup power, maintenance ---------- */
+  U.ready = () => { const m = S().machine || {}; return m.door === 'closed' && m.trays && m.sensors && S().connected; };
+  U.homeCards = (running) => {
+    const s = S(), m = s.machine || {};
+    const row = (ok, icon, label, val) => '<div class="kv" style="min-height:30px"><span class="row" style="gap:8px">' + '<span class="' + (ok ? 'okc' : 'dangerc') + '">' + ic(ok ? 'circle-check' : 'circle-alert', 18) + '</span>' + label + '</span><b class="' + (ok ? '' : 'dangerc') + '">' + val + '</b></div>';
+    const ready = U.ready();
+    let h = '';
+    if (!running) h += '<div class="card mt12"><div class="row" style="justify-content:space-between"><b style="color:var(--navy)">Kahandaan ng makina</b>' + (ready ? U.chip('circle-check', 'Handa', 'ok') : U.chip('circle-alert', 'Hindi pa handa', 'danger')) + '</div><div class="mt8">' +
+      row(m.door === 'closed', 'door', 'Pinto', m.door === 'closed' ? 'Nakasara' : 'Bukas') + row(!!m.trays, 'trays', 'Mga tray', m.trays ? 'Pantay' : 'Suriin') + row(!!m.sensors, 'thermometer', 'Sensor ng init at timbang', m.sensors ? 'Gumagana' : 'May problema') +
+      '</div><div class="tiny muted mt4">Huling update: ngayon lang</div>' + (m.door !== 'closed' ? '<div class="mt8">' + U.btn('Naisara ko na ang pinto', 'doorFix', 'tint') + '</div>' : '') + '</div>';
+    const hrs = Math.max(0, s.battery / 100 * 10);
+    const grid = s.power === 'grid';
+    h += '<div class="card mt8"><div class="row" style="justify-content:space-between"><b style="color:var(--navy)">Reserbang kuryente</b>' + U.chip(grid ? 'plug' : 'battery-low', grid ? 'Nagcha-charge' : 'Gamit ang baterya', grid ? 'ok' : 'warn') + '</div>' +
+      '<div class="row mt8" style="gap:12px"><span class="' + (s.battery <= s.settings.batWarn ? 'dangerc' : 'blue') + '">' + ic(s.battery <= s.settings.batWarn ? 'battery-low' : 'battery', 30) + '</span><div class="grow"><div class="h2">' + Math.round(s.battery) + '%</div><div class="small muted">Kaya pang magbantay nang mga ' + (Math.round(hrs * 2) / 2) + ' oras kung mawalan ng kuryente</div></div></div>' +
+      '<div class="mt8">' + U.bar(s.battery) + '</div><div class="tiny muted mt8">' + ic('sun', 14) + ' Solar charging: ' + (grid ? 'naka-standby' : 'bukas kapag may araw') + '</div></div>';
+    if (!running) {
+      const mt = s.maint || {};
+      const items = [['ash', 'flame', 'Linisin ang lalagyan ng abo', 'Pagkatapos ng biomass'], ['glass', 'sun', 'Punasan ang salaming bahagi', 'Para pumasok ang init ng araw'], ['coil', 'wrench', 'Suriin ang heating coil', 'Isang beses kada linggo']];
+      const left = items.filter((x) => !mt[x[0]]).length;
+      h += '<div class="card mt8"><div class="row" style="justify-content:space-between"><b style="color:var(--navy)">Paalala sa pag-aalaga</b><span class="small ' + (left ? 'warnc' : 'okc') + '" style="font-weight:700">' + (left ? left + ' gagawin' : 'Tapos lahat') + '</span></div>' +
+        items.map((x) => '<div class="listrow" style="min-height:52px;border-top:1px solid var(--line);margin-top:6px;padding-top:6px' + (mt[x[0]] ? ';opacity:.55' : '') + '"><span class="blue">' + ic(x[1], 22) + '</span><div class="grow"><div class="p" style="' + (mt[x[0]] ? 'text-decoration:line-through' : '') + '">' + x[2] + '</div><div class="tiny muted">' + (mt[x[0]] ? 'Natapos ngayon' : x[3]) + '</div></div><button class="btn ' + (mt[x[0]] ? 'tint' : 'secondary') + '" style="height:36px;width:auto;padding:0 12px;font-size:.8125rem;border-radius:10px" data-act="maintTick" data-arg="' + x[0] + '">' + (mt[x[0]] ? 'Ibalik' : 'Tapos na') + '</button></div>').join('') + '</div>';
+    }
+    return h;
+  };
+  ACT.maintTick = (k) => { S().maint[k] = !S().maint[k]; save(); rerender(); };
+  ACT.doorFix = () => { S().machine.door = 'closed'; save(); rerender(); toast('Nakasara na ang pinto', 'door'); };
   ACT.tapConn = () => { S().connected = false; save(); go(isOn() ? 'S04' : S().scenario === 'shared' ? 'ST_WALANG_KONEKSYON' : 'ST_WALANG_KONEKSYON'); };
 
   /* ================= MODE PICKER (before 00_Simula) ================= */
@@ -60,7 +87,8 @@
       '<div class="center" style="opacity:.9;margin-top:-8px">Interactive na prototype · Pumili ng senaryo</div>' +
       '<button class="opt" data-act="pickMode" data-arg="orig"><span class="pic">' + ic('smartphone', 26) + '</span><span><b class="h3" style="display:block">Orihinal na daloy</b><span class="p muted small">Isang cellphone. Login → ikonekta ang makina → bagong batch → subaybayan → nawalan ng kuryente → biomass → tapos na.</span></span></button>' +
       '<button class="opt" data-act="pickMode" data-arg="shared"><span class="pic">' + ic('users', 26) + '</span><span><b class="h3" style="display:block">Shared Batch</b><span class="p muted small">Maraming cellphone sa iisang makina (SUBAD). May pangalan ng operator, kandado sa paghahanda, at mga kilos ni Ate Lita mula sa ibang cellphone.</span></span></button>' +
-      '<div class="small" style="opacity:.85;line-height:1.5;margin-top:4px">Para sa facilitator: pindutin nang matagal ang logo (o pindutin ang <b>`</b> / <b>F2</b>) para sa control panel — power cut, baterya, bilis ng orasan, at iba pa.</div>' +
+      '<div class="small" style="opacity:.85;line-height:1.5;margin-top:4px">Para sa facilitator: pindutin nang matagal ang logo (o <b>`</b> / <b>F2</b>) para sa control panel. Para kontrolin mula sa ibang device, buksan ang <b>controller.html</b> at ilagay ang code:</div>' +
+      '<div id="modeRemote" class="center" style="background:rgba(255,255,255,.14);border-radius:12px;padding:10px">' + (window.REMOTE ? window.remoteLine() : 'Remote: hindi available') + '</div>' +
       '</div>' + '<div class="androidnav light"><button></button><button></button><button></button></div></div>'
   };
   ACT.pickMode = (m) => {
@@ -87,46 +115,43 @@
       window.__androidnav(true) + '</div>',
     keys: { Escape: 'MODE' }, back: 'MODE'
   };
-  ACT.startApp = () => { const s = S(); s.loggedIn = false; s.connected = false; s.selectedMachine = false; s.loginAttempts = 0; s.pin = ''; s.pinShown = false; s.samahanTyped = ''; save(); go('02'); };
+  ACT.startApp = () => { const s = S(); s.loggedIn = false; s.connected = false; s.selectedMachine = false; s.loginAttempts = 0; s.pin = ''; save(); go('02'); };
 
-  /* ================= LOGIN (02 + State_Login_01…09) ================= */
+  /* ================= LOGIN (02 + State_Login_01…09) – username + PIN, native number keyboard ================= */
+  function pinInput(id, val, shown, ph, err) {
+    return '<div class="input ' + (err ? 'error' : '') + '"><input id="' + id + '" type="' + (shown ? 'text' : 'password') + '" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" value="' + H.esc(val || '') + '" placeholder="' + (ph || '6 na numero') + '" style="letter-spacing:' + (shown ? '1px' : '4px') + '"></div>';
+  }
+  U.pinInput = pinInput;
   function loginView(mode) {
     const s = S();
     const first = mode === '02';
-    const pinVal = s.pin || '';
     const shown = mode === 'L02';
-    const kp = mode === 'L03';
-    const dots = pinVal ? (shown ? pinVal : '•'.repeat(pinVal.length)) : '';
-    const sam = first ? (s.samahanTyped || '') : (s.samahanTyped || s.samahan || 'SUBAD');
     const locked = mode === 'L05';
-    const waiting = mode === 'L06';
-    let h = '';
-    if (!kp) {
-      h += '<div class="authhero"><div class="lg"><img src="' + LOGO + '" alt="AGAP" data-logo><b>AGAP</b></div>' +
-        '<h2>' + (first ? 'Mag-login' : 'Maligayang Pagbabalik!') + '</h2><div class="sub">' + ic('lock', 16) + (first ? 'Para magamit ang makina.' : mode === 'L01' || mode === 'L02' ? 'Mag-login sa makina.' : 'Mag-login para magamit ang makina.') + '</div></div>';
-    }
-    h += '<div class="card ' + (kp ? '' : 'mt16') + '" style="padding:20px"><div class="field"><label>' + (first ? 'Samahan' : 'Pangalan ng Samahan o Gumagamit') + '</label>' +
-      '<div class="input" id="samBox"><input id="samIn" value="' + H.esc(sam) + '" placeholder="Halimbawa: SUBAD" autocomplete="off" spellcheck="false"></div></div>' +
-      '<div class="field mt16"><label>' + (kp ? 'Ilagay ang PIN' : 'PIN') + '</label><div class="input ' + (kp ? 'focus' : '') + (mode === 'L04' || locked ? ' error' : '') + '" data-act="openPin" style="cursor:pointer">' +
-      '<span style="flex:1;letter-spacing:' + (shown ? '1px' : '3px') + ';font-size:' + (shown ? '1rem' : '1.25rem') + '">' + (dots || '<span class="ph" style="letter-spacing:0;font-size:1rem">6 na numero</span>') + (kp ? '<span class="caret"></span>' : '') + '</span>' +
-      '<button data-act="togglePin" class="blue" style="display:flex;gap:6px;align-items:center;font-weight:600">' + ic(shown ? 'eye-off' : 'eye', 20) + (shown ? 'Itago ang PIN' : 'Ipakita ang PIN') + '</button></div>' +
-      (mode === 'L04' ? '<div class="err">' + ic('circle-alert', 16) + 'Maling PIN. Subukan muli.</div>' : '') +
+    let h = '<div class="authhero"><div class="lg"><img src="' + LOGO + '" alt="AGAP" data-logo><b>AGAP</b></div>' +
+      '<h2>' + (first ? 'Mag-login' : 'Maligayang Pagbabalik!') + '</h2><div class="sub">' + ic('lock', 16) + (first ? 'Para magamit ang makina.' : 'Mag-login sa makina.') + '</div></div>';
+    h += '<div class="card mt16" style="padding:20px"><div class="field"><label>Username</label>' +
+      '<div class="input ' + (mode === 'L04' ? 'error' : '') + '"><input id="userIn" value="' + H.esc(s.loginUser || '') + '" placeholder="hal. MangJun" autocomplete="username" autocapitalize="none" spellcheck="false"></div></div>' +
+      '<div class="field mt16"><label>PIN</label><div style="position:relative">' + pinInput('pinIn', s.pin, shown, '6 na numero', mode === 'L04' || locked) +
+      '<button data-act="togglePin" class="blue" style="position:absolute;right:12px;top:0;height:56px;display:flex;gap:6px;align-items:center;font-weight:600">' + ic(shown ? 'eye-off' : 'eye', 20) + (shown ? 'Itago' : 'Ipakita') + '</button></div>' +
+      (mode === 'L04' ? '<div class="err">' + ic('circle-alert', 16) + 'Mali ang username o PIN. Subukan muli.</div>' : '') +
       (locked ? '<div class="err">' + ic('lock', 16) + 'Na-lock · Subukan sa <span id="lockLeft">1 minuto</span>.</div>' : '') + '</div>' +
-      (kp ? '' : '<div class="mt8">' + U.check(s.remember, first ? 'Tandaan ako' : 'Tandaan ako sa cellphone na ito', 'toggleRemember') + '</div>') + '</div>';
+      '<div class="mt8">' + U.check(s.remember, 'Tandaan ako sa cellphone na ito', 'toggleRemember') + '</div></div>';
     return h;
   }
   function loginActions(mode) {
-    if (mode === 'L03') return '';
-    if (mode === 'L06') return '<button class="btn primary disabled" style="background:var(--blue);color:#fff;opacity:.85"><span class="spinner s" style="border-color:rgba(255,255,255,.35);border-top-color:#fff"></span>Sandali lang...</button>' + '<button class="link" data-go="L07">Nakalimutan ang PIN?</button>';
-    return U.btn(mode === '02' ? 'LOGIN' : 'MAG-LOGIN', 'doLogin', 'primary', mode === 'L05' ? 'disabled' : '') + '<button class="link" data-go="L07">Nakalimutan ang PIN?</button>';
+    const reg = U.btn(ic('user', 20) + 'Gumawa ng account', 'toRegister', 'secondary') + '<button class="link" style="padding:4px 0" data-go="L07">Nakalimutan ang PIN?</button>';
+    if (mode === 'L06') return '<button class="btn primary disabled" style="background:var(--blue);color:#fff;opacity:.85"><span class="spinner s" style="border-color:rgba(255,255,255,.35);border-top-color:#fff"></span>Sandali lang...</button>' + reg;
+    return U.btn('MAG-LOGIN', 'doLogin', 'primary', mode === 'L05' ? 'disabled' : '') + reg;
   }
   const loginKeys = { Escape: () => { S().loginAttempts = 0; save(); go('00'); } };
   function mkLogin(id, name, extra) {
-    SC[id] = Object.assign({ name: name, bar: { brand: true }, body: () => loginView(id), actions: () => loginActions(id), keys: loginKeys, back: '00' }, extra || {});
+    SC[id] = Object.assign({ name: name, bar: { brand: true }, body: () => loginView(id), actions: () => loginActions(id), keys: loginKeys, back: '00',
+      mounted: () => { ['userIn', 'pinIn'].forEach((k) => { const i = document.getElementById(k); if (i) i.addEventListener('keydown', (e) => { if (e.key === 'Enter') ACT.doLogin(); }); }); const p = document.getElementById('pinIn'); if (p) p.addEventListener('input', () => { p.value = p.value.replace(/\D/g, '').slice(0, 6); }); } }, extra || {});
   }
   mkLogin('02', '02_Login');
   mkLogin('L01', 'State_Login_01_Handa');
   mkLogin('L02', 'State_Login_02_Nakikitang_PIN');
+  mkLogin('L03', 'State_Login_03 (PIN gamit ang keyboard ng telepono)', { enter: () => setTimeout(() => { const p = document.getElementById('pinIn'); if (p) p.focus(); }, 150) });
   mkLogin('L04', 'State_Login_04_Maling_PIN', { enter: () => { if (S().loginAttempts >= 3) { S().lockUntil = Date.now() + 60000; save(); go('L05', { replace: true }); } } });
   mkLogin('L05', 'State_Login_05_Na_lock', {
     enter: () => {
@@ -135,44 +160,67 @@
       SC.L05._iv = iv;
     }, leave: () => clearInterval(SC.L05._iv)
   });
+  H.findAccount = (u) => S().accounts.find((a) => a.username.toLowerCase() === String(u || '').trim().toLowerCase());
   mkLogin('L06', 'State_Login_06_Sandali', {
-    after: [1500, () => {
-      const s = S(); const ok = s.pin === '123456' || s.pin === '';
-      if (ok) { s.loginAttempts = 0; save(); go('L08'); } else { s.loginAttempts++; save(); go('L04'); }
+    after: [1300, () => {
+      const s = S(); const acc = H.findAccount(s.loginUser);
+      if (acc && acc.pin === s.pin) { s.loginAttempts = 0; s.operator = acc.username; s.samahan = acc.samahan; save(); go('L08'); } else { s.loginAttempts++; save(); go('L04'); }
     }]
   });
   mkLogin('L08', 'State_Login_08_Tagumpay', {
-    mounted: () => { const t = document.createElement('div'); t.className = 'toast nonav'; t.style.bottom = '160px'; t.innerHTML = ic('circle-check', 22) + '<span>Maligayang pagdating!</span>'; document.getElementById('screen').appendChild(t); },
+    mounted: () => { const t = document.createElement('div'); t.className = 'toast nonav'; t.style.bottom = '170px'; t.innerHTML = ic('circle-check', 22) + '<span>Maligayang pagdating, ' + H.esc(H.me()) + '!</span>'; document.getElementById('screen').appendChild(t); },
     after: [1100, () => { const s = S(); s.loggedIn = true; save(); if (s.scenario === 'shared' && !s.operator) return go('SB14'); go(s.permOK ? '03' : 'S01'); }]
   });
-  SC.L03 = {
-    name: 'State_Login_03_Keypad', bar: { brand: true }, body: () => loginView('L03') + '<div class="mt16">' + U.btn('MAG-LOGIN', 'noop', 'primary', 'disabled') + '<button class="link" data-go="L07">Nakalimutan ang PIN?</button></div>',
-    raw: null, keys: { Escape: () => window.back() }, back: () => go(S().pinFrom || 'L01'),
-    actions: () => '', mounted: () => {
-      const v = document.querySelector('#screen .view'); const kp = document.createElement('div'); kp.className = 'keypad';
-      kp.innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => '<button data-act="pinKey" data-arg="' + n + '">' + n + '</button>').join('') + '<button data-act="pinDel" aria-label="Burahin">' + ic('del', 26) + '</button><button data-act="pinKey" data-arg="0">0</button><button class="done" data-act="pinDone">Tapos</button>';
-      v.insertBefore(kp, v.querySelector('.androidnav'));
-    }
-  };
   ACT.noop = () => { };
-  ACT.openPin = (a, el, e) => { if (e && e.target.closest('[data-act="togglePin"]')) return; const s = S(); if (window.curScreen() === 'L05') return; s.pinFrom = window.curScreen() === 'L02' ? 'L01' : 'L01'; s.pin = ''; save(); keepSam(); go('L03'); };
-  ACT.togglePin = (a, el, e) => { e.stopPropagation(); keepSam(); const c = window.curScreen(); if (c === 'L02') return go('L01', { replace: true }); if (!S().pin) return; if (c === 'L01' || c === '02' || c === 'L04') go('L02', { replace: true }); };
-  ACT.pinKey = (d) => { const s = S(); if ((s.pin || '').length >= 6) return; s.pin = (s.pin || '') + d; save(); rerender(); };
-  ACT.pinDel = () => { const s = S(); s.pin = (s.pin || '').slice(0, -1); save(); rerender(); };
-  ACT.pinDone = () => { const s = S(); if (!s.pin) s.pin = '123456'; save(); go('L01', { replace: true }); };
-  ACT.toggleRemember = () => { S().remember = !S().remember; keepSam(); save(); rerender(); };
-  function keepSam() { const i = document.getElementById('samIn'); if (i) { S().samahanTyped = i.value; S().samahan = i.value || 'SUBAD'; save(); } }
+  function keepLogin() { const u = document.getElementById('userIn'), p = document.getElementById('pinIn'); if (u) S().loginUser = u.value.trim(); if (p) S().pin = p.value.replace(/\D/g, '').slice(0, 6); save(); }
+  ACT.togglePin = (a, el, e) => { if (e) e.stopPropagation(); keepLogin(); const c = window.curScreen(); go(c === 'L02' ? 'L01' : 'L02', { replace: true }); };
+  ACT.toggleRemember = () => { keepLogin(); S().remember = !S().remember; save(); rerender(); };
   ACT.doLogin = () => {
-    keepSam(); const s = S();
-    if (!s.samahanTyped) { const i = document.getElementById('samIn'); toast('Ilagay ang pangalan ng Samahan', 'info'); if (i) i.focus(); return; }
-    if (!s.pin) { go('L03'); return; }
+    keepLogin(); const s = S();
+    if (window.curScreen() === 'L05') return;
+    if (!s.loginUser) { toast('Ilagay ang username', 'info'); const i = document.getElementById('userIn'); if (i) i.focus(); return; }
+    if (s.pin.length !== 6) { toast('Ilagay ang 6 na numero ng PIN', 'info'); const i = document.getElementById('pinIn'); if (i) i.focus(); return; }
     go('L06');
   };
+  ACT.toRegister = () => { keepLogin(); S().reg = { username: '', phone: '', samahan: '', pin: '', pin2: '', err: {} }; save(); go('REG'); };
   SC.L07 = {
     name: 'State_Login_07_Nakalimutang_PIN', sheet: () => '<div class="stack"><div class="h2">Nakalimutan ang PIN?</div><p class="p">Ipa-reset ang PIN sa tagapamahala.</p>' + U.btn(ic('phone', 20) + 'Tumawag', 'callAdmin') + U.btn('Isara', 'close', 'secondary') + '</div>',
     keys: { Escape: () => window.closeOverlay() }
   };
   ACT.callAdmin = () => { window.closeOverlay(); toast('Tumatawag sa Tagapamahala…', 'phone'); };
+
+  /* ================= (bago) Gumawa ng account ================= */
+  SC.REG = {
+    name: '(bago) Gumawa ng account', bar: { title: 'Gumawa ng account', back: 'L01' }, back: 'L01', keys: { Escape: 'L01' },
+    body: () => {
+      const r = S().reg || (S().reg = { err: {} }); const e = r.err || {};
+      const fld = (k, label, inner, hint) => '<div class="field mt16"><label>' + label + '</label>' + inner + (e[k] ? '<div class="err">' + ic('circle-alert', 16) + e[k] + '</div>' : (hint ? '<div class="hint">' + hint + '</div>' : '')) + '</div>';
+      const txt = (k, ph, extra) => '<div class="input ' + (e[k] ? 'error' : '') + '"><input id="reg_' + k + '" value="' + H.esc(r[k] || '') + '" placeholder="' + ph + '" ' + (extra || '') + '></div>';
+      return '<p class="p muted">Para makapag-login at makita ng samahan kung sino ang gumagamit ng makina.</p>' +
+        fld('username', 'Username', txt('username', 'hal. MangJun', 'autocapitalize="none" spellcheck="false" maxlength="20"'), '3–20 letra o numero') +
+        fld('phone', 'Numero ng telepono', txt('phone', '09XX XXX XXXX', 'type="tel" inputmode="tel" maxlength="13"'), 'Para sa pag-reset ng PIN') +
+        fld('samahan', 'Samahan', txt('samahan', 'hal. SUBAD', 'maxlength="30"'), 'Pangalan ng inyong samahan o kooperatiba') +
+        fld('pin', 'PIN', pinInput('reg_pin', r.pin, false, '6 na numero', e.pin), '6 na numero') +
+        fld('pin2', 'Ulitin ang PIN', pinInput('reg_pin2', r.pin2, false, '6 na numero', e.pin2), '');
+    },
+    actions: () => U.btn('GUMAWA NG ACCOUNT', 'doRegister') + '<button class="link" data-go="L01">May account na? Mag-login</button>',
+    mounted: () => { ['reg_pin', 'reg_pin2'].forEach((k) => { const p = document.getElementById(k); if (p) p.addEventListener('input', () => { p.value = p.value.replace(/\D/g, '').slice(0, 6); }); }); }
+  };
+  ACT.doRegister = () => {
+    const v = (k) => { const i = document.getElementById('reg_' + k); return i ? i.value.trim() : ''; };
+    const r = { username: v('username'), phone: v('phone').replace(/[\s-]/g, ''), samahan: v('samahan'), pin: v('pin'), pin2: v('pin2'), err: {} };
+    if (!/^[A-Za-z0-9._ ]{3,20}$/.test(r.username)) r.err.username = 'Gumamit ng 3–20 letra o numero.';
+    else if (H.findAccount(r.username)) r.err.username = 'May gumagamit na ng username na ito.';
+    if (!/^(09\d{9}|\+639\d{9})$/.test(r.phone)) r.err.phone = 'Hal. 09171234567 (11 numero).';
+    if (r.samahan.length < 2) r.err.samahan = 'Ilagay ang pangalan ng samahan.';
+    if (!/^\d{6}$/.test(r.pin)) r.err.pin = 'Dapat 6 na numero ang PIN.';
+    else if (r.pin2 !== r.pin) r.err.pin2 = 'Hindi magkapareho ang PIN.';
+    S().reg = r; save();
+    if (Object.keys(r.err).length) { rerender(); const first = document.querySelector('#screen .input.error input'); if (first) first.focus(); return; }
+    S().accounts.push({ username: r.username, phone: r.phone, samahan: r.samahan, pin: r.pin });
+    S().loginUser = r.username; S().pin = ''; S().reg = null; save();
+    go('L01'); setTimeout(() => toast('Nagawa ang account. Mag-login na.', 'circle-check', 3000), 100);
+  };
 
   /* ================= S01 Wi-Fi / Bluetooth at pahintulot ================= */
   SC.S01 = {
@@ -238,7 +286,7 @@
     body: () => {
       const last = S().history[0];
       return U.dashCard() + powerBanner() +
-        '<div class="center mt16 blue">' + ic('fish', 40, '', 1.5) + '</div><div class="mt12">' + U.btn('+ Bagong Batch', 'navNew') + '</div>' +
+        '<div class="mt12">' + U.btn('+ Bagong Batch', 'navNew', 'primary', U.ready() ? '' : 'disabled') + '</div>' + U.homeCards(false) +
         (last ? '<div class="card soft mt12 tap listrow" data-act="openLast" style="padding:14px 12px"><span class="blue">' + ic('fish', 28) + '</span><span class="grow"><b class="small" style="color:var(--navy)">Huling batch · ' + last.fish + '</b><div class="p mt4">' + H.kg(last.initial) + ' kg → ' + H.kg(last.final) + ' kg</div></span><span class="' + (last.status === 'done' ? 'okc' : 'dangerc') + ' small" style="font-weight:700;align-self:flex-end">' + (last.status === 'done' ? 'Natapos' : 'Hindi natapos') + '</span></div>' : '') +
         '<div class="card soft mt8 tap listrow" data-act="startTut" style="padding:14px 12px"><span class="blue">' + ic('play', 22) + '</span><span class="grow"><b class="h3" style="color:var(--navy)">Paano gamitin</b><div class="p muted mt4">Ulitin ang maikling gabay  →</div></span></div>' +
         '<div class="card soft mt8 listrow" style="padding:8px 12px">' + '<span class="blue">' + ic('hand', 24) + '</span><span class="grow small">Palamigin bago hawakan</span></div>';
@@ -269,7 +317,7 @@
         '<div class="m">' + ic('clock', 24) + '<div class="l">Natitira</div><div class="v">' + H.durShort(M.remaining(bb)) + '</div></div>' +
         '<div class="m">' + ic('scale', 24) + '<div class="l">Timbang</div><div class="v">' + H.kg(M.weight(bb)) + ' kg</div></div></div>' +
         '<div class="grid2 mt8">' + U.btn('Subaybayan', 'toMonitor') + U.btn('Ihinto', 'askStop', 'danger') + '</div>' +
-        '<div class="card soft mt8 listrow" style="padding:8px 12px;min-height:40px"><span class="' + (S().weather === 'sun' ? 'warnc' : 'blue') + '">' + ic(S().weather === 'sun' ? 'sun' : 'cloud-rain', 22) + '</span><span class="small">' + (S().weather === 'sun' ? 'Maaraw · Mainam sa pagpapatuyo' : 'Maulan · Ligtas sa loob ng makina ang isda') + '</span></div>';
+        U.homeCards(true);
     }
   };
   ACT.toMonitor = () => go(H.monitorId());
@@ -445,7 +493,7 @@
   /* ================= 15 Subaybayan (Kuryente) ================= */
   function heatChip(bb, withSupply) {
     const st = M.status(bb);
-    const icon = bb.mode === 'Biomass' ? 'flame' : S().power === 'none' ? 'battery' : 'plug';
+    const icon = bb.mode === 'Biomass' ? 'flame' : bb.mode === 'Solar' ? 'sun' : S().power === 'none' ? 'battery' : 'plug';
     return U.chip(st === 'Umiinit' ? icon : 'pause', '<span class="' + (st === 'Umiinit' ? 'pulse' : '') + '">' + st + (withSupply ? ' • ' + M.supply() : '') + '</span>', st === 'Umiinit' ? 'blue' : 'danger');
   }
   U.heatChip = heatChip;
@@ -551,43 +599,75 @@
     actions: () => U.btn('Ano ang susunod?', ':19')
   };
   SC['19'] = {
-    name: '19_Pagpili_Ituloy sa biomass', base: '18', scrimClose: false,
-    sheet: () => '<div class="stack"><div class="h1" style="font-size:1.625rem">Ipagpapatuloy ba ang pagpapatuyo gamit ang biomass?</div><p class="p">Kailangan munang ihanda ang panggatong at silid ng apoy.</p>' + U.btn('OO, ITULOY', 'bioYes') + U.btn('HINDI, ITIGIL', 'bioNo', 'secondary') + '</div>'
+    name: '19_Pagpili_Ituloy ang pagpapatuyo?', base: '18', scrimClose: false,
+    sheet: () => '<div class="stack"><div class="h1" style="font-size:1.625rem">Ipagpapatuloy ba ang pagpapatuyo?</div><p class="p">Walang kuryente. Maaaring ituloy gamit ang <b>araw (solar)</b> o <b>biomass</b>. Kung hindi, ititigil ang batch at itatala sa Rekord.</p>' + U.btn('OO, ITULOY', 'bioYes') + U.btn('HINDI, ITIGIL', 'bioNo', 'secondary') + '</div>'
   };
-  ACT.bioYes = () => { window.closeOverlay(); S().decision = 'biomass'; save(); go('20'); };
-  ACT.bioNo = () => { window.closeOverlay(); if (b()) b().heat = 'stopped'; S().decision = 'stop'; save(); go('22'); };
-  SC['20'] = {
-    name: '20_Ihanda ang biomass', bar: { title: 'Paghahanda', back: '18' }, back: '18',
-    enter: () => { S().prep = S().prep || [false, false, false]; save(); },
+  ACT.bioYes = () => { window.closeOverlay(); S().decision = 'continue'; save(); go('ALT'); };
+  ACT.bioNo = () => {
+    window.closeOverlay(); S().decision = 'stop';
+    const rec = H.stopBatch(H.me(), 'Walang kuryente'); if (!rec) return go(H.homeId());
+    if (S().scenario === 'shared') { S().waiting = { kind: 'stopped', rec: rec }; save(); go('SB46'); }
+    else { S().viewRec = rec.id; save(); go('25'); }
+    setTimeout(() => toast('Itinigil ang batch · naitala sa Rekord', 'pause', 3200), 120);
+  };
+  /* (bago) Pumili: Araw (solar) o Biomass */
+  SC.ALT = {
+    name: '(bago) Pumili ng alternatibong pagpapatuyo', bar: { title: 'Ituloy ang pagpapatuyo', back: '18' }, back: '18', live: true,
     body: () => {
-      const p = S().prep || [false, false, false];
-      const items = ['1. Ihanda ang panggatong.', '2. Sindihan ang apoy.', '3. Ikabit ang silid ng apoy.'];
-      return U.hero('flame', { size: 'm' }) + '<div class="h1 mt12">Pakisuri  bago ituloy.</div><p class="p muted mt8">Hindi pa  nagsisimula ang pag-init gamit ang biomass.</p><div class="stack mt12" style="gap:12px">' +
-        items.map((t, i) => '<div class="card tap listrow" data-act="prepTick" data-arg="' + i + '" style="padding:10px 12px;min-height:52px"><span class="' + (p[i] ? 'blue' : 'muted') + '">' + ic(p[i] ? 'square-check' : 'square', 26) + '</span><b class="grow" style="color:var(--text)">' + t + '</b></div>').join('') + '</div>' +
-        '<div class="mt12">' + U.banner('info', 'shield-alert', 'Mag-ingat  sa apoy.', 'Gumamit  ng guwantes. Ilayo ang madaling masunog.') + '</div>';
-    },
-    actions: () => { const p = S().prep || []; return U.btn('HANDA NA', 'bioReady', 'primary', p.every((x) => x) && p.length === 3 ? '' : 'disabled'); }
+      const bb = b();
+      const opt = (k, icon, title, desc, tags) => '<button class="card tap" data-act="pickAlt" data-arg="' + k + '" style="width:100%;text-align:left;padding:16px;display:flex;gap:14px;align-items:flex-start"><span style="width:52px;height:52px;border-radius:16px;background:var(--pale);display:flex;align-items:center;justify-content:center;flex:none" class="' + (k === 'Solar' ? 'warnc' : 'dangerc') + '">' + ic(icon, 30) + '</span><span style="flex:1"><b class="h3" style="display:block">' + title + '</b><span class="p muted small" style="display:block;margin-top:4px">' + desc + '</span><span class="row mt8" style="gap:6px;flex-wrap:wrap">' + tags.map((t) => '<span class="chip" style="height:24px;font-size:.6875rem">' + t + '</span>').join('') + '</span></span><span class="blue" style="align-self:center">' + ic('chevron-right', 22) + '</span></button>';
+      return U.hero('unplug', { size: 'm' }) + '<div class="h1 mt12">Paano itutuloy?</div><p class="p muted mt8">Piliin ang gagamitin habang walang kuryente. May gabay at checklist bago magsimula.</p>' +
+        '<div class="stack mt16" style="gap:12px">' + opt('Solar', 'sun', 'Araw (Solar)', 'Init ng araw sa salaming bahagi ng makina. Tahimik at walang gastos sa panggatong.', ['Maaraw lang', 'Mas mabagal']) +
+        opt('Biomass', 'flame', 'Biomass', 'Panggatong at silid ng apoy. Gumagana kahit gabi o maulap.', ['Kailangang bantayan ang apoy']) + '</div>' +
+        (bb ? '<div class="card soft mt16 listrow"><span class="blue">' + ic('battery', 22) + '</span><span class="grow small">Tuloy ang pagsubaybay gamit ang baterya (' + Math.round(S().battery) + '%). Nakahinto ang pag-init habang naghahanda.</span></div>' : '');
+    }
   };
-  ACT.prepTick = (i) => { const p = S().prep; p[i] = !p[i]; save(); rerender(); };
-  ACT.bioReady = () => {
+  const PREP = {
+    Solar: ['Ilagay ang makina sa lugar na tinatamaan ng araw.', 'Punasan ang salaming bahagi (glass panel).', 'Alisin ang takip sa salamin.', 'Isara nang maayos ang pinto ng makina.', 'Tiyaking umaandar ang bentilador (baterya).'],
+    Biomass: ['Ihanda ang panggatong (tuyong kahoy o bao).', 'Sindihan ang apoy sa silid ng apoy.', 'Ikabit ang silid ng apoy sa makina.', 'Buksan nang tama ang daluyan ng hangin ng apoy.', 'Magsuot ng guwantes; ilayo ang madaling masunog.']
+  };
+  ACT.pickAlt = (k) => { S().altMode = k; S().prep = PREP[k].map(() => false); save(); go(k === 'Solar' ? 'ALT_SOLAR' : '20'); };
+  function prepScreen(kind) {
+    return {
+      name: kind === 'Solar' ? '(bago) Ihanda ang solar (checklist)' : '20_Ihanda ang biomass (checklist)',
+      bar: { title: kind === 'Solar' ? 'Paghahanda · Araw' : 'Paghahanda · Biomass', back: 'ALT' }, back: 'ALT',
+      enter: () => { if (!S().prep || S().prep.length !== PREP[kind].length || S().altMode !== kind) { S().altMode = kind; S().prep = PREP[kind].map(() => false); save(); } },
+      body: () => {
+        const p = S().prep || []; const done = p.filter(Boolean).length; const n = PREP[kind].length;
+        return U.hero(kind === 'Solar' ? 'sun' : 'flame', { size: 'm', tone: kind === 'Solar' ? 'warn' : '' }) + '<div class="h1 mt12">Pakisuri  bago ituloy.</div><p class="p muted mt8">Hindi pa  nagsisimula ang pag-init gamit ang ' + (kind === 'Solar' ? 'araw' : 'biomass') + '. Gawin at i-tsek ang bawat hakbang.</p>' +
+          '<div class="row mt12" style="justify-content:space-between"><b class="small" style="color:var(--navy)">' + done + ' sa ' + n + ' tapos</b><span class="small muted">Lahat dapat naka-tsek</span></div><div class="mt4">' + U.bar(done / n * 100) + '</div>' +
+          '<div class="stack mt12" style="gap:10px">' + PREP[kind].map((t, i) => '<div class="card tap listrow" data-act="prepTick" data-arg="' + i + '" style="padding:10px 12px;min-height:56px;' + (p[i] ? 'border-color:var(--blue);background:var(--pale)' : '') + '"><span class="' + (p[i] ? 'blue' : 'muted') + '">' + ic(p[i] ? 'square-check' : 'square', 26) + '</span><b class="grow" style="color:var(--text);font-weight:600">' + (i + 1) + '. ' + t + '</b></div>').join('') + '</div>' +
+          '<div class="mt12">' + (kind === 'Solar' ? U.banner('info', 'cloud-rain', 'Kapag umulap o gumabi:', 'Bababa ang init. Aabisuhan kayo para lumipat sa biomass.') : U.banner('info', 'shield-alert', 'Mag-ingat  sa apoy.', 'Huwag iwan ang apoy nang walang bantay.')) + '</div>';
+      },
+      actions: () => { const p = S().prep || []; const ok = p.length && p.every((x) => x); return U.btn(ok ? 'HANDA NA · SIMULAN' : 'Tapusin muna ang checklist', 'altReady', 'primary', ok ? '' : 'disabled'); }
+    };
+  }
+  SC['20'] = prepScreen('Biomass');
+  SC.ALT_SOLAR = prepScreen('Solar');
+  ACT.prepTick = (i) => { const p = S().prep; p[+i] = !p[+i]; save(); rerender(); };
+  ACT.altReady = () => {
     const bb = b(); if (!bb) return go(H.homeId());
-    bb.mode = 'Biomass'; bb.heat = 'on'; bb.bioStart = bb.h; bb.autoDropDone = false; S().prep = null; save();
-    notify({ icon: 'flame', tone: 'info', title: 'Umiinit gamit ang biomass', desc: 'Ituloy ang pagbabantay sa apoy. Aabisuhan kayo kapag bumaba ang init.', go: '21', cta: 'Subaybayan' });
+    const kind = window.curScreen() === 'ALT_SOLAR' ? 'Solar' : 'Biomass';
+    bb.mode = kind; bb.heat = 'on'; bb.bioStart = bb.h; bb.autoDropDone = false; bb.drop = 0; S().prep = null; save();
+    notify({ icon: kind === 'Solar' ? 'sun' : 'flame', tone: 'info', title: kind === 'Solar' ? 'Umiinit gamit ang araw' : 'Umiinit gamit ang biomass', desc: 'Tuloy ang pagpapatuyo. Aabisuhan kayo kapag bumaba ang init.', go: '21', cta: 'Subaybayan' });
     go('21');
   };
+  ACT.bioReady = ACT.altReady;
   SC['21'] = {
     name: '21_Subaybayan_Biomass at araw', bar: { title: 'Subaybayan', back: '06' }, nav: 'dash', live: true, back: '06',
     enter: () => { if (!isOn()) go(H.homeId(), { replace: true }); },
     body: () => {
       const bb = b(); if (!bb) return '';
-      return '<div class="h3 blue">Biomass / Araw</div><div class="p muted mt4">' + bb.fish + ' • ' + H.dur(bb.h) + '<br>Sinimulan ni ' + bb.starter + '</div>' +
+      const solar = bb.mode === 'Solar';
+      return '<div class="h3 blue row" style="gap:6px">' + ic(solar ? 'sun' : 'flame', 20) + (solar ? 'Araw (Solar)' : 'Biomass') + '</div><div class="p muted mt4">' + bb.fish + ' • ' + H.dur(bb.h) + '<br>Sinimulan ni ' + bb.starter + '</div>' +
         '<div class="card mt12 listrow" style="padding:12px 16px"><span class="blue">' + ic(S().battery <= S().settings.batWarn ? 'battery-low' : 'battery', 32) + '</span><div class="grow"><div class="p">Baterya</div><div class="p muted">' + (S().battery <= S().settings.batWarn ? 'Mahina' : 'Sapat') + '</div></div><span class="big" style="font-size:2rem">' + Math.round(S().battery) + '%</span></div>' +
-        (bb.drop > 3 ? '<div class="mt12">' + U.banner('warn', 'thermometer', 'Bumaba ang init: ' + M.temp(bb) + '°C', 'Magdagdag ng panggatong. Ayusin ang hangin ng apoy.') + '<div class="mt8">' + U.btn(bb.refuel ? '<span class="spinner s"></span> Umiinit muli…' : 'Nadagdagan na ang panggatong', 'refuel', 'tint', bb.refuel ? 'disabled' : '') + '</div></div>' : '') +
-        '<div class="mt12">' + heatChip(bb) + '</div><div class="mt12">' + metrics(bb) + '</div>' +
-        '<div class="card soft mt12"><b style="color:var(--navy)">Kapag bumaba ang init:</b><p class="p mt8">Magdagdag  ng panggatong.<br>Ayusin  ang hangin ng apoy.</p></div>';
+        (bb.drop > 3 ? '<div class="mt12">' + U.banner('warn', solar ? 'cloud-rain' : 'thermometer', 'Bumaba ang init: ' + M.temp(bb) + '°C', solar ? 'Natakpan ng ulap ang araw. Hintayin o lumipat sa biomass.' : 'Magdagdag ng panggatong. Ayusin ang hangin ng apoy.') + '<div class="mt8">' + (solar ? '<div class="grid2">' + U.btn(bb.refuel ? '<span class="spinner s"></span> Hinihintay…' : 'Hintayin ang araw', 'refuel', 'tint', bb.refuel ? 'disabled' : '') + U.btn('Lumipat sa biomass', 'switchBio', 'secondary') + '</div>' : U.btn(bb.refuel ? '<span class="spinner s"></span> Umiinit muli…' : 'Nadagdagan na ang panggatong', 'refuel', 'tint', bb.refuel ? 'disabled' : '')) + '</div></div>' : '') +
+        '<div class="mt12">' + U.heatChip(bb) + '</div><div class="mt12">' + U.metrics(bb) + '</div><div class="mt8">' + U.progressCard(bb) + '</div>' +
+        '<div class="card soft mt12"><b style="color:var(--navy)">Kapag bumaba ang init:</b><p class="p mt8">' + (solar ? 'Tiyaking walang lilim sa salamin.<br>Kapag maulap nang matagal, lumipat sa biomass.' : 'Magdagdag  ng panggatong.<br>Ayusin  ang hangin ng apoy.') + '</p></div>';
     }
   };
   ACT.refuel = () => { const bb = b(); if (bb) { bb.refuel = true; save(); rerender(); } };
+  ACT.switchBio = () => { S().altMode = 'Biomass'; S().prep = PREP.Biomass.map(() => false); save(); go('20'); };
   SC['22'] = {
     name: '22_Hindi itutuloy_Hinto ang pag-init', bar: { title: 'Lagay ng Batch', back: '15' }, nav: 'dash', back: '15',
     body: () => U.hero('pause-circle', { size: 'm' }) + '<div class="h1 mt12">Titigil ang pag-init.</div><p class="p mt8">Patuloy pa rin ang pagsubaybay.</p>' +
@@ -619,7 +699,7 @@
   ACT.saveDone = () => { const r = S().lastDone; if (r) H.addRecord(r); S().batch = null; S().viewRec = r && r.id; save(); toast('Naitala sa Rekord', 'circle-check'); go('25'); };
   SC.ST_TAPOS_BIO = {
     name: 'State_Tapos na_Biomass', bar: { title: 'Tapos na ang Batch', back: () => go('05') }, back: () => go('05'),
-    body: () => { const r = S().lastDone || S().history[0]; return U.hero('fish', { size: 's' }) + '<div class="h1 center mt12">Tuyo na  ang isda!</div><p class="p center mt8">Naabot na ang target na timbang.</p>' + doneCard(r, 'Biomass') + '<div class="mt12">' + U.banner('info', 'hand', 'Patayin  ang makina.', 'Kapag malamig na , alisin ang isda at kolektahin ang abo.') + '</div>'; },
+    body: () => { const r = S().lastDone || S().history[0]; return U.hero('fish', { size: 's' }) + '<div class="h1 center mt12">Tuyo na  ang isda!</div><p class="p center mt8">Naabot na ang target na timbang.</p>' + doneCard(r, U.modeLabel(r.mode)) + '<div class="mt12">' + U.banner('info', 'hand', 'Patayin  ang makina.', (r.mode === 'Solar' ? 'Kapag malamig na, alisin ang isda at takpan ang salamin.' : 'Kapag malamig na , alisin ang isda at kolektahin ang abo.')) + '</div>'; },
     actions: () => U.btn('Tapos Na', 'saveDone') + U.btn('Tingnan ang Buod', 'saveDoneSummary', 'secondary')
   };
   ACT.saveDoneSummary = () => { const r = S().lastDone; if (r) H.addRecord(r); S().batch = null; S().viewRec = r && r.id; save(); go('26'); };
@@ -627,7 +707,7 @@
   /* ================= 25 / 26 Rekord ================= */
   U.recCard = (r) => '<div class="card tap" data-act="openRec" data-arg="' + r.id + '" style="padding:10px 14px"><div class="row" style="justify-content:space-between"><span class="small muted">' + r.date + '</span><span class="blue">' + ic('chevron-right', 20) + '</span></div>' +
     '<b class="h3" style="display:block;margin-top:4px">' + r.fish + '</b><div class="h1" style="font-size:1.5rem;margin-top:2px">' + H.kg(r.initial) + ' → ' + H.kg(r.final) + ' kg</div>' +
-    '<div class="row mt4" style="justify-content:space-between"><span class="muted">' + H.dur(r.hours) + '</span><span class="blue row" style="gap:4px">' + ic(U.supplyIcon(r.mode), 18) + (r.mode === 'Biomass' ? 'Biomass / Araw' : 'Kuryente') + '</span></div>' +
+    '<div class="row mt4" style="justify-content:space-between"><span class="muted">' + H.dur(r.hours) + '</span><span class="blue row" style="gap:4px">' + ic(U.supplyIcon(r.mode), 18) + U.modeLabel(r.mode) + '</span></div>' +
     '<div class="row mt4" style="justify-content:space-between"><span class="muted">Sinimulan ni ' + r.starter + '</span>' + (r.status === 'done' ? '<span class="tag-ok">' + ic('check', 16, '', 3) + 'Natapos</span>' : '<span class="tag-danger">! Hindi natapos</span>') + '</div></div>';
   SC['25'] = {
     name: '25_Kasaysayan ng mga Batch', bar: { title: 'Rekord', back: () => go(H.homeId()) }, nav: 'rekord', back: () => go(H.homeId()),
@@ -641,7 +721,7 @@
     body: () => {
       const r = S().history.find((x) => x.id === S().viewRec) || S().history[0];
       if (!r) return '';
-      return '<div class="row" style="justify-content:space-between"><div><div class="h2">' + r.fish + '</div><div class="small muted mt4">' + r.date + '</div></div>' + U.chip(U.supplyIcon(r.mode), r.mode, 'blue') + '</div>' +
+      return '<div class="row" style="justify-content:space-between"><div><div class="h2">' + r.fish + '</div><div class="small muted mt4">' + r.date + '</div></div>' + U.chip(U.supplyIcon(r.mode), U.modeLabel(r.mode), 'blue') + '</div>' +
         '<div class="card mt12"><div class="h1">' + H.kg(r.initial) + ' → ' + H.kg(r.final) + ' kg</div><p class="p mt8">Tagal: ' + H.dur(r.hours) + '</p><p class="p mt4">Karaniwang init: ' + r.temp + '°C</p>' +
         '<div class="row mt8">' + (r.status === 'done' ? '<span class="tag-ok"><span class="dot" style="background:var(--ok)"></span>Natapos</span>' : '<span class="tag-danger">Ihininto</span>') + '<span class="muted">Sinimulan ni ' + r.starter + '</span></div></div>' +
         '<div class="card mt8"><div class="h3">Timbang (kg)</div><div class="mt8">' + U.graph({ initial: r.initial, target: r.target, dur: r.hours, h: r.hours, full: r.status === 'done', stopAt: r.status === 'done' ? null : r.stopAt, xlabels: [0, 2, 4, Math.round(r.hours * 10) / 10 > 4 ? Math.round(r.hours) : Math.round(r.hours * 10) / 10] }) + '</div><p class="p muted mt8">Oras ng pagpapatuyo</p></div>' +
@@ -671,8 +751,8 @@
     actions: () => U.btn('IKONEKTA MULI', 'reconnect')
   };
   SC.S05 = { name: 'S05_Sobrang init', bar: { brand: true }, back: () => go(H.homeId()), enter: () => notify({ icon: 'thermometer', tone: 'critical', title: 'Sobrang init', desc: 'Huwag hawakan ang makina. Palamigin muna.', go: 'S05' }), body: () => U.hero('thermometer', { white: true, tone: 'danger', deco: false }) + '<div class="h2 center mt16">Sobrang init</div><div class="stack mt24"><div class="card listrow"><span class="blue">' + ic('hand', 24) + '</span><span class="grow">Huwag hawakan</span></div><div class="card listrow"><span class="blue">' + ic('thermometer', 24) + '</span><span class="grow">Palamigin muna</span></div></div>', actions: () => U.btn('NAUNAWAAN KO', ':17') + U.btn('Tumawag', ':27', 'secondary') };
-  SC.S06 = { name: 'S06_Bukas ang pinto', bar: { brand: true }, back: () => go(H.homeId()), enter: () => notify({ icon: 'door', tone: 'warning', title: 'Bukas ang pinto', desc: 'Isara ang pinto ng makina para tuloy ang pagpapatuyo.', go: 'S06' }), body: () => U.hero('door', { white: true, tone: 'warn', deco: false }) + '<div class="h2 center mt16">Bukas ang pinto</div><div class="stack mt24"><div class="card listrow"><span class="blue">' + ic('door', 24) + '</span><span class="grow">Isara ang pinto</span></div></div>', actions: () => U.btn('TAPOS NA', 'doorClosed') };
-  ACT.doorClosed = () => go(isOn() ? H.monitorId() : H.homeId());
+  SC.S06 = { name: 'S06_Bukas ang pinto', bar: { brand: true }, back: () => go(H.homeId()), enter: () => (S().machine.door = 'open', save(), notify({ icon: 'door', tone: 'warning', title: 'Bukas ang pinto', desc: 'Isara ang pinto ng makina para tuloy ang pagpapatuyo.', go: 'S06' })), body: () => U.hero('door', { white: true, tone: 'warn', deco: false }) + '<div class="h2 center mt16">Bukas ang pinto</div><div class="stack mt24"><div class="card listrow"><span class="blue">' + ic('door', 24) + '</span><span class="grow">Isara ang pinto</span></div></div>', actions: () => U.btn('TAPOS NA', 'doorClosed') };
+  ACT.doorClosed = () => { S().machine.door = 'closed'; save(); go(isOn() ? H.monitorId() : H.homeId()); };
   SC.S07 = { name: 'S07_Problema sa makina', bar: { brand: true }, back: () => go(H.homeId()), enter: () => notify({ icon: 'wrench', tone: 'critical', title: 'May problema sa makina', desc: 'Patayin ang makina at tumawag sa Tagapamahala.', go: 'S07' }), body: () => U.hero('wrench', { white: true, tone: 'danger', deco: false }) + '<div class="h2 center mt16">May problema sa makina</div><div class="stack mt24"><div class="card listrow"><span class="blue">' + ic('power', 24) + '</span><span class="grow">Patayin ang makina</span></div><div class="card listrow"><span class="blue">' + ic('phone', 24) + '</span><span class="grow">Tumawag sa Tagapamahala</span></div></div>', actions: () => U.btn('TUMAWAG', ':27') };
   SC.S18 = { name: 'S18_Tapos na ang session', bar: { brand: true }, back: null, body: () => U.hero('hourglass', { white: true }) + '<div class="h2 center mt16">Tapos na ang session</div><p class="p muted center mt8">Mag-login ulit para magpatuloy. Tuloy pa rin ang makina.</p>', actions: () => U.btn('MAG-LOGIN ULIT', 'relogin') };
   ACT.relogin = () => { S().loggedIn = false; S().pin = ''; save(); go('02'); };

@@ -9,7 +9,7 @@
     [0, 0], [2 / BASE_DUR, .25], [(4 + 5 / 60) / BASE_DUR, .5], [(5 + 15 / 60) / BASE_DUR, .75], [1, 1]
   ];
   const HUM = [82, 68, 54, 42, 35];
-  const SPEEDS = { figma: 49, fast: 180, med: 480, slow: 1200, real: BASE_DUR * 3600 }; // real seconds for full 6h20m
+  const SPEEDS = { demo30: 30, figma: 49, fast: 180, med: 480, slow: 1200, real: BASE_DUR * 3600 }; // real seconds for full 6h20m
 
   const MONTHS = ['Enero', 'Pebrero', 'Marso', 'Abril', 'Mayo', 'Hunyo', 'Hulyo', 'Agosto', 'Setyembre', 'Oktubre', 'Nobyembre', 'Disyembre'];
   const fmtDate = (d) => { d = new Date(d); return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); };
@@ -37,16 +37,18 @@
   }
   function freshState(scenario) {
     return {
-      v: 1, scenario: scenario || null, screen: 'MODE',
-      loggedIn: false, remember: false, samahan: 'SUBAD', operator: scenario === 'shared' ? '' : 'Mang Jun',
+      v: 2, scenario: scenario || null, screen: 'MODE',
+      accounts: [{ username: 'MangJun', phone: '09171234567', samahan: 'SUBAD', pin: '123456' }], loginUser: '',
+      machine: { door: 'closed', trays: true, sensors: true }, maint: { ash: false, glass: false, coil: false },
+      loggedIn: false, remember: false, samahan: 'SUBAD', operator: '',
       loginAttempts: 0, lockUntil: 0, pin: '', pinTyped: false,
       permOK: false, connType: 'wifi', connected: false, selectedMachine: false,
       notifAllowed: null, tutorialSeen: false,
-      power: 'grid', battery: 76, weather: 'sun',
+      power: 'grid', battery: 76,
       batch: null, cooling: false, lastDone: null,
       history: seedHistory(), notifs: seedNotifs(),
       settings: { font: 'm', sound: true, batWarn: 20 },
-      speed: 'fast', failConnect: false, failStart: false, noHistory: false,
+      speed: 'demo30', failConnect: false, failStart: false, noHistory: false,
       // shared-batch scenario
       lock: null, // {by:'me'|'other', at}
       waiting: null, // {kind:'done'|'stopped', record}
@@ -56,7 +58,7 @@
 
   let S;
   try { S = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { S = null; }
-  if (!S || S.v !== 1) S = freshState();
+  if (!S || S.v !== 2) S = freshState();
   window.S = S;
   const save = (window.save = () => { try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) { } });
 
@@ -87,12 +89,14 @@
     b = b || S.batch; const s = M.lossShare(M.p(b));
     let t = b.temp - (s > .75 ? (s - .75) * 16 : 0);
     if (b.mode === 'Biomass') t += Math.sin(b.h * 7) * 1.5 - (b.drop || 0);
+    if (b.mode === 'Solar') t += -6 + Math.sin(b.h * 4) * 2 - (b.drop || 0);
     if (S.batch && b.heat !== 'on') t = Math.max(38, t - (b.coolH || 0) * 18);
     return Math.round(t);
   };
   M.remaining = (b) => { b = b || S.batch; return Math.max(0, M.dur(b) - b.h); };
   M.status = (b) => { b = b || S.batch; if (!b) return ''; if (M.p(b) >= 1) return 'Tuyo na'; if (b.heat === 'stopped') return 'Nakahinto'; if (b.heat === 'paused') return 'Nakahinto'; return 'Umiinit'; };
-  M.supply = () => (S.batch && S.batch.mode === 'Biomass' ? 'Biomass' : S.power === 'none' ? 'Baterya' : 'Kuryente');
+  M.supply = () => (S.batch && S.batch.active && S.batch.mode === 'Biomass' ? 'Biomass' : S.batch && S.batch.active && S.batch.mode === 'Solar' ? 'Araw' : S.power === 'none' ? 'Baterya' : 'Kuryente');
+  M.alt = (b) => { b = b || S.batch; return !!b && (b.mode === 'Biomass' || b.mode === 'Solar'); };
 
   /* ---------------- router ---------------- */
   let cur = null, timers = [], stack = [], overlay = null;
@@ -207,6 +211,7 @@
   ACT.navNew = () => {
     if (S.scenario === 'shared') return SB.onNew();
     if (S.batch && S.batch.active) return go('S08');
+    if (S.machine && S.machine.door !== 'closed') return go('S06');
     go('S11a');
   };
   ACT.navAbiso = () => (S.scenario === 'shared' ? go('16') : go('16'));
@@ -217,7 +222,7 @@
     if (!S.connected) return 'ST_WALANG_KONEKSYON';
     return S.batch && S.batch.active ? '06' : '05';
   };
-  H.monitorId = () => (S.batch && S.batch.mode === 'Biomass' ? '21' : S.scenario === 'shared' ? 'SB05' : '15');
+  H.monitorId = () => (S.batch && S.batch.active && M.alt(S.batch) ? '21' : S.scenario === 'shared' ? 'SB05' : '15');
 
   function render(fresh) {
     const def = SCREENS[cur]; if (!def) return;
@@ -303,9 +308,9 @@
   function tick() {
     const now = Date.now(); const dt = Math.min(2, (now - lastTick) / 1000); lastTick = now;
     const b = S.batch;
-    const rate = (BASE_DUR) / SPEEDS[S.speed || 'fast']; // sim hours per real second
+    let rate = (BASE_DUR) / (SPEEDS[S.speed] || 30); if (b && b.mode === 'Solar') rate *= .75; // sim hours per real second
     if (b && b.active) {
-      const heating = b.heat === 'on' && (b.mode === 'Biomass' || S.power === 'grid');
+      const heating = b.heat === 'on' && (M.alt(b) || S.power === 'grid');
       if (heating) {
         b.h += dt * rate; b.coolH = Math.max(0, (b.coolH || 0) - dt * rate * 2);
         if (b.drop) b.drop = Math.max(0, b.drop - dt * rate * (b.refuel ? 30 : 0));
@@ -319,7 +324,7 @@
         }
       }
       // biomass: automatic temperature drop reminder halfway through the biomass phase
-      if (b.mode === 'Biomass' && heating && !b.autoDropDone && b.bioStart != null && b.h - b.bioStart > Math.max(.6, (M.dur(b) - b.bioStart) * .35)) {
+      if (M.alt(b) && heating && !b.autoDropDone && b.bioStart != null && b.h - b.bioStart > Math.max(.6, (M.dur(b) - b.bioStart) * .35)) {
         b.autoDropDone = true; ACT.facTempDrop();
       }
       // stage notifications (mirror Figma stage changes)
@@ -341,14 +346,19 @@
     const rec = { id: 'h' + Date.now(), date: H.today(), fish: b.fish, initial: b.initial, final: b.target, target: b.target, hours: b.h, mode: b.mode, starter: b.starter, status: 'done', temp: b.temp };
     S.lastDone = rec;
     if (S.scenario === 'shared') { SB.onDone(rec); return; }
-    notify({ icon: 'circle-check', tone: 'good', title: 'Tuyo na ang isda!', desc: 'Naabot ang target na ' + H.kg(b.target) + ' kg. Palamigin muna bago alisin.', go: b.mode === 'Biomass' ? 'ST_TAPOS_BIO' : '24', cta: 'Tingnan' });
-    if (b.mode === 'Biomass') { go('ST_TAPOS_BIO'); }
+    notify({ icon: 'circle-check', tone: 'good', title: 'Tuyo na ang isda!', desc: 'Naabot ang target na ' + H.kg(b.target) + ' kg. Palamigin muna bago alisin.', go: M.alt(b) ? 'ST_TAPOS_BIO' : '24', cta: 'Tingnan' });
+    if (M.alt(b)) { go('ST_TAPOS_BIO'); }
     else { S.cooling = true; S.coolUntil = Date.now() + 20 * 60000 / (SPEEDS.real / SPEEDS[S.speed]); go('17'); }
     save();
   }
   window.finishBatch = finishBatch;
   H.addRecord = (rec) => { if (!S.history.find((r) => r.id === rec.id)) S.history.unshift(rec); S.noHistory = false; save(); };
 
+  H.stopBatch = (by, reason) => {
+    const bb = S.batch; if (!bb) return null;
+    const rec = { id: 'h' + Date.now(), date: H.today(), fish: bb.fish, initial: bb.initial, final: +H.kg(M.weight(bb)), target: bb.target, hours: bb.h, mode: bb.mode, starter: bb.starter, status: 'stopped', temp: bb.temp, stopAt: M.p(bb), stoppedBy: by || H.me(), reason: reason || '' };
+    S.batch = null; S.lastStopped = rec; H.addRecord(rec); save(); return rec;
+  };
   H.startBatch = (starter) => {
     const f = S.form || {};
     S.batch = { active: true, fish: f.fish || 'Galunggong', initial: 26.4, target: f.target || 17.2, temp: f.temp || 68, h: 0, mode: S.power === 'none' ? 'Biomass' : 'Kuryente', heat: 'on', starter: starter || H.me(), startedAt: Date.now(), samples: [] };
@@ -416,6 +426,7 @@
       'Screen: <b>' + H.esc((SCREENS[overlay || cur] || {}).name || cur) + '</b><br>' +
       'Batch: <b>' + (b && b.active ? b.fish + ' · ' + M.pct(b) + '% · ' + H.dur(b.h) + ' · ' + M.status(b) + ' · ' + b.mode : 'wala') + '</b><br>' +
       'Kuryente: <b>' + (S.power === 'grid' ? 'May kuryente' : 'WALA') + '</b> · Baterya <b>' + Math.round(S.battery) + '%</b><br>' +
+      'Remote code: <b style="font-size:15px;letter-spacing:2px">' + (window.REMOTE ? REMOTE.code : '—') + '</b> · ' + (window.REMOTE && REMOTE.online ? '<b style="color:#6ee7a8">online</b>' : '<span style="color:#f6b26b">offline</span>') + '<br>' +
       (S.scenario === 'shared' ? 'Kandado: <b>' + (S.lock ? (S.lock.by === 'me' ? 'Ikaw' : S.otherName) : 'libre') + '</b>' + (S.waiting ? ' · Naghihintay alisin (' + S.waiting.kind + ')' : '') : '');
   }
   function facRefresh() { if (document.getElementById('fac').classList.contains('open')) facStat(); }
@@ -426,12 +437,12 @@
     sc.innerHTML =
       '<div class="stat" id="facStat"></div>' +
       '<h4>Bilis ng orasan ng pagpapatuyo</h4><select id="facSpeed">' +
-      [['figma', 'Figma demo (~50 seg ang buong batch)'], ['fast', 'Mabilis (~3 min)'], ['med', 'Katamtaman (~8 min)'], ['slow', 'Mabagal (~20 min)'], ['real', 'Totoong oras (6 oras 20 min)']].map((o) => '<option value="' + o[0] + '"' + (S.speed === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>' +
+      [['demo30', 'Pang-test (~30 seg ang buong batch)'], ['figma', 'Figma demo (~50 seg)'], ['fast', 'Mabilis (~3 min)'], ['med', 'Katamtaman (~8 min)'], ['slow', 'Mabagal (~20 min)'], ['real', 'Totoong oras (6 oras 20 min)']].map((o) => '<option value="' + o[0] + '"' + (S.speed === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>' +
       '<div class="grid mt8">' + fb('+1 oras', 'skip1') + fb('Tapusin ang batch', 'finish') + '</div>' +
       '<h4>Kuryente at baterya</h4><div class="grid">' +
       fb('⚡ Nawalan ng kuryente', 'cut', 'abiso sa itaas, tulad ng totoong app', 'hot') + fb('Bumalik ang kuryente', 'back', 'bubukas ang tanong (23)') +
       fb('Mahina ang baterya', 'lowbat', '15% · abiso') + fb('Bumaba ang init (biomass)', 'drop', 'paalala sa panggatong') +
-      fb('Hindi sapat ang kuryente', 'insuff', 'bago magsimula') + fb('Panahon: ' + (S.weather === 'sun' ? 'Maaraw' : 'Maulan'), 'weather') +
+      fb('Hindi sapat ang kuryente', 'insuff', 'bago magsimula') + fb('Bukas ang pinto', 'S06', 'D · readiness') +
       '</div><h4>Makina at koneksyon</h4><div class="grid">' +
       fb('Sobrang init', 'S05', 'H') + fb('Bukas ang pinto', 'S06', 'D') + fb('Problema sa makina', 'S07', 'E') + fb('Pang-emerhensiyang paghinto', 'emer') +
       fb('Nawala ang koneksyon', 'lost', 'L') + fb('Tapos na ang session', 'S18', 'X') +
@@ -469,23 +480,27 @@
     lowbat: () => { S.battery = 15; save(); notify({ icon: 'battery-low', tone: 'warning', title: 'Mahina na ang Baterya', desc: '15% na lang ang baterya ng makina. Suriin ang kuryente.', go: 'ST_BATERYA', cta: 'Tingnan' }); },
     drop: () => ACT.facTempDrop(),
     insuff: () => go('ST_KULANG_KURYENTE'),
-    weather: () => { S.weather = S.weather === 'sun' ? 'rain' : 'sun'; save(); rerender(); },
     emer: () => { notify({ icon: 'octagon-alert', tone: 'critical', title: 'Nakahinto ang makina', desc: 'Pang-emerhensiyang paghinto. Lumayo sa apoy at suriin ang makina.', go: 'ST_EMERHENSIYA', cta: 'Tingnan' }); go('ST_EMERHENSIYA'); },
     lost: () => { S.connected = false; save(); go(S.batch && S.batch.active ? 'S04' : 'ST_WALANG_KONEKSYON'); },
     failConn: () => { S.failConnect = !S.failConnect; save(); },
     failStart: () => { S.failStart = !S.failStart; save(); },
     nohist: () => { S.noHistory = !S.noHistory; save(); rerender(); },
     mode: () => { go('MODE'); facToggle(false); },
-    reset: () => { const n = Date.now(); if (!FAC._armed || n - FAC._armed > 4000) { FAC._armed = n; setTimeout(() => { const b = document.querySelector('[data-fac="reset"]'); if (b) b.innerHTML = 'Pindutin ULIT para i-reset<small>buburahin ang batch, rekord at login</small>'; }, 0); return; } FAC._armed = 0; try { localStorage.removeItem(LS_KEY); } catch (e) { } location.reload(); }
+    reset: () => { const n = Date.now(); if (!FAC._armed || n - FAC._armed > 4000) { FAC._armed = n; setTimeout(() => { const b = document.querySelector('[data-fac="reset"]'); if (b) b.innerHTML = 'Pindutin ULIT para i-reset<small>buburahin ang batch, rekord at login</small>'; }, 0); return; } FAC._armed = 0; window.__resetDemo(); }
   });
   ACT.facTempDrop = () => {
     const b = S.batch; if (!b || !b.active) { toast('Walang tumatakbong batch', 'info'); return; }
-    if (b.mode !== 'Biomass') { toast('Para sa biomass na pag-init lang ito', 'info'); return; }
+    if (!M.alt(b)) { toast('Para sa biomass o solar na pag-init lang ito', 'info'); return; }
     b.drop = 14; b.refuel = false; save();
-    notify({ icon: 'thermometer', tone: 'warning', title: 'Bumaba ang init', desc: 'Magdagdag ng panggatong at ayusin ang hangin ng apoy.', go: '21', cta: 'Tingnan' });
+    if (b.mode === 'Solar') notify({ icon: 'cloud-rain', tone: 'warning', title: 'Bumaba ang init', desc: 'Natakpan ng ulap ang araw. Hintayin o lumipat sa biomass.', go: '21', cta: 'Tingnan' });
+    else notify({ icon: 'thermometer', tone: 'warning', title: 'Bumaba ang init', desc: 'Magdagdag ng panggatong at ayusin ang hangin ng apoy.', go: '21', cta: 'Tingnan' });
   };
 
   window.FACTRIGGERS = FAC;
+  window.facRefreshRemote = () => { facStat(); const el = document.getElementById('modeRemote'); if (el && window.REMOTE) el.innerHTML = remoteLine(); };
+  function remoteLine() { return 'Remote code: <b style="letter-spacing:2px;font-size:1.0625rem">' + REMOTE.code + '</b> · ' + (REMOTE.online ? 'handa' : 'walang internet'); }
+  window.remoteLine = remoteLine;
+  window.__resetDemo = () => { try { localStorage.removeItem(LS_KEY); } catch (e) { } location.reload(); };
   window.__fresh = freshState; window.__statusbar = statusbar; window.__androidnav = androidnav;
   document.getElementById('facClose').onclick = () => facToggle(false);
   document.getElementById('facTab').onclick = () => facToggle(true);

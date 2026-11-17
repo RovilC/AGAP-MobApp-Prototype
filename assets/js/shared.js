@@ -47,84 +47,55 @@
 
   /* ---------- shared UI bits ---------- */
   const card = (inner, extra) => '<div class="card ' + (extra || '') + '">' + inner + '</div>';
-  function sbHeader(sub) {
-    const sup = M.supply();
-    return '<div class="gradcard"><div class="greet">' + (sub && sub.greet || 'Magandang araw !') + '</div>' +
-      '<div class="line" data-act="tapConn" style="cursor:pointer">' + ic(H.connIcon(), 18) + (sub && sub.line || 'SUBAD • AGAP-001') + '</div>' +
-      '<div class="chips">' + U.chip(U.supplyIcon(sup), sup, 'dark') + U.chip(S().power === 'none' ? 'battery-low' : 'battery', Math.round(S().battery) + '%', 'dark') + '</div></div>';
-  }
-  function compactHeader() {
-    return '<div class="card soft" style="padding:10px 12px"><div class="row" style="justify-content:space-between"><b style="color:var(--navy)">SUBAD • AGAP-001</b>' + U.chip(H.connIcon(), 'Nakakonekta', 'blue') + '</div><div class="small muted mt4">' + M.supply() + ' • Baterya ' + Math.round(S().battery) + '%</div></div>';
-  }
-  function quick(items) {
-    items = items || [['plus', 'Bagong Batch', 'navNew'], ['activity', 'Subaybayan', 'sbMonitor'], ['bell', 'Abiso', 'navAbiso'], ['help', 'Tulong', ':27']];
-    return '<div class="row mt16" style="justify-content:space-around">' + items.map((x) => '<button ' + (x[2][0] === ':' ? 'data-go="' + x[2].slice(1) + '"' : 'data-act="' + x[2] + '"') + ' style="display:flex;flex-direction:column;align-items:center;gap:6px;width:76px"><span style="width:40px;height:40px;border-radius:20px;background:var(--pale);display:flex;align-items:center;justify-content:center" class="blue">' + ic(x[0], 22) + '</span><b class="small" style="color:var(--navy)">' + x[1] + '</b></button>').join('') + '</div>';
-  }
+  function sbHeader(sub) { return U.dashCard(sub && sub.greet ? { greet: sub.greet } : {}); }
+  function compactHeader() { return U.dashCard(); }
+  function quick() { return ''; }
+  function note(icon, html, tone) { return '<div class="card ' + (tone || 'soft') + ' mt8 listrow" style="padding:10px 12px"><span class="' + (tone === 'warn' ? 'warnc' : 'blue') + '">' + ic(icon, 22) + '</span><span class="grow small">' + html + '</span></div>'; }
   function freshRow() { return '<div class="card flat listrow tap mt12" data-go="SB37" style="padding:8px 12px;min-height:44px"><span class="blue">' + ic('refresh', 20) + '</span><span class="grow small muted">Suriin  ang sariwang tala ng makina.</span></div>'; }
   ACT.sbMonitor = () => { if (isOn()) return go(H.monitorId()); go('SB54'); };
   function homeMount(msg) { return () => { if (msg) setTimeout(() => toast(msg, 'circle-check', 3200), 150); }; }
   const homeBase = { bar: { brand: true }, nav: 'dash', live: true, back: null, keys: { X: 'S18' } };
 
   /* ---------- SB01 Tahanan_Libre + toasts ---------- */
-  function libreBody(extra) {
-    return sbHeader() + '<div class="card mt12" style="padding:16px"><div class="h3">Walang Batch. Maaari nang magsimula.</div><p class="p muted mt8">Iisa  ang Batch sa lahat ng cellphone. Sa Makina  galing ang tala.</p><div class="mt12">' + U.btn('Bagong Batch', 'navNew') + '</div></div>' + quick() + (extra || '') +
-      '<div class="card soft mt16 listrow" style="padding:8px 12px"><span class="blue">' + ic('bell', 20) + '</span><span class="small">Huling abiso: Nakakonekta na  ang makina.</span></div>';
+  function libreBody() {
+    return U.dashCard() + U.powerBanner() + '<div class="mt12">' + U.btn('+ Bagong Batch', 'navNew', 'primary', U.ready() ? '' : 'disabled') + '</div>' +
+      note('users', 'Iisa  ang Batch sa lahat ng cellphone ng SUBAD. Sa Makina  galing ang tala.') + U.homeCards(false);
   }
   SC.SB01 = Object.assign({ name: 'SB01_Tahanan_Libre', body: () => libreBody() }, homeBase);
   SC.SB53 = Object.assign({ name: 'SB53_Makina_Handa_Toast', body: () => libreBody(), mounted: homeMount('Handa na ang makina para sa bagong batch.') }, homeBase);
   SC.SB54 = Object.assign({ name: 'SB54_Walang_Tumatakbong_Batch_Toast', body: () => libreBody(), mounted: homeMount('Walang tumatakbong batch.') }, homeBase);
   SC.SB12 = Object.assign({
     name: 'SB12_Natapos_ang_Setup_Lock',
-    body: () => sbHeader({ greet: 'Natapos na  ang oras ng paghahanda.', line: 'AGAP-001 • SUBAD' }) + '<div class="card mt12" style="padding:16px"><p class="p">Walang ginawa sa loob ng 5 minuto. Wala na  naghahanda ng Batch.</p><div class="mt8">' + U.chip('circle-check', 'Kinumpirma ng Makina: Walang Batch', 'ok') + '</div><div class="mt12">' + U.btn('Bagong Batch', 'navNew') + '</div></div>' + quick()
+    body: () => U.dashCard() + '<div class="mt12">' + U.banner('info', 'lock-open', 'Natapos na  ang oras ng paghahanda.', 'Walang ginawa sa loob ng 5 minuto. Kinumpirma ng Makina: Walang Batch.') + '</div><div class="mt12">' + U.btn('+ Bagong Batch', 'navNew', 'primary', U.ready() ? '' : 'disabled') + '</div>' + U.homeCards(false)
   }, homeBase);
-
   /* ---------- Setup lock homes ---------- */
-  SC.SB21 = Object.assign({
-    name: 'SB21_Home_Setup_Other',
-    body: () => compactHeader() + '<div class="card mt12" style="padding:16px"><span class="lock-badge">' + ic('lock', 16) + 'May nag-aayos</span><p class="p mt12"><b>May nag-aayos ng batch (' + other() + ').</b> Hintayin .</p><p class="small muted mt8">Awtomatikong magbubukas pagkalipas ng mga 5 minuto kung hindi ituloy.</p></div>' + quick() + freshRow()
-  }, homeBase);
-  SC.SB02 = Object.assign({
-    name: 'SB02_Nag_aayos_Ibang_Cellphone',
-    body: () => sbHeader({ line: 'AGAP-001 • Nakakonekta' }) + '<div class="card warn mt12" style="padding:16px"><div class="h3">May naghahanda ng Batch.</div><p class="p mt8">Si ' + other() + ' ang naghahanda.</p><p class="small muted mt8">Sa cellphone lang  ni ' + other() + ' maaaring ipagpatuloy ang paghahanda.</p><p class="small muted mt8">Kapag walang ginawa sa loob ng 5 minuto, mawawala  ang kandado.</p></div>' + quick() + '<div class="card soft mt16 listrow" style="padding:8px 12px"><span class="blue">' + ic('bell', 20) + '</span><span class="small">Huling abiso: Nakakonekta na  ang makina.</span></div>'
-  }, homeBase);
-  SC.SB22 = Object.assign({
-    name: 'SB22_Home_Setup_Mine',
-    body: () => compactHeader() + '<div class="card mt12" style="padding:16px"><span class="lock-badge">' + ic('lock-open', 16) + 'May nag-aayos</span><p class="p mt12"><b>Ikaw ang nag-aayos ng batch.</b></p><p class="small muted mt4">' + H.esc(H.me()) + ' • SUBAD</p><p class="small muted mt8">Awtomatikong magbubukas pagkalipas ng mga 5 minuto kung hindi ituloy.</p><div class="mt12">' + U.btn('ITULOY ANG PAG-AAYOS', 'resumeSetup') + '</div></div>' + quick() + freshRow()
-  }, homeBase);
-  SC.SB03 = Object.assign({
-    name: 'SB03_Nag_aayos_May_Ari',
-    body: () => sbHeader({ greet: H.esc(H.me()) + ' • SUBAD', line: 'AGAP-001 • Nakakonekta' }) + '<div class="card mt12" style="padding:16px"><div class="h3">Ikaw  ang naghahanda.</div><p class="small muted mt8">Sa Makina  kinukumpirma ang naghahanda.</p><div class="mt12">' + U.btn('Ipagpatuloy ang Paghahanda', 'resumeSetup') + '</div></div>' + quick([['bell', 'Abiso', 'navAbiso'], ['help', 'Tulong', ':27']]) + '<p class="small muted center mt12">Kapag walang ginawa sa loob ng 5 minuto, mawawala  ang kandado.</p>'
-  }, homeBase);
+  const lockOther = () => U.dashCard() + '<div class="mt12">' + U.banner('warn', 'lock', 'May nag-aayos ng batch: ' + other(), 'Hintayin muna. Awtomatikong magbubukas pagkalipas ng mga 5 minuto kung hindi ituloy.') + '</div><div class="mt12">' + U.btn(ic('lock', 20) + 'May nag-aayos…', 'noop', 'primary', 'disabled') + '</div>' + freshRow() + U.homeCards(false);
+  const lockMine = () => U.dashCard() + '<div class="mt12">' + U.banner('info', 'lock-open', 'Ikaw ang nag-aayos ng batch.', H.esc(H.me()) + ' • SUBAD · Mawawala ang kandado kapag walang ginawa sa loob ng 5 minuto.') + '</div><div class="mt12">' + U.btn('ITULOY ANG PAG-AAYOS', 'resumeSetup') + '</div>' + U.homeCards(false);
+  SC.SB21 = Object.assign({ name: 'SB21_Home_Setup_Other', body: lockOther }, homeBase);
+  SC.SB02 = Object.assign({ name: 'SB02_Nag_aayos_Ibang_Cellphone', body: lockOther }, homeBase);
+  SC.SB22 = Object.assign({ name: 'SB22_Home_Setup_Mine', body: lockMine }, homeBase);
+  SC.SB03 = Object.assign({ name: 'SB03_Nag_aayos_May_Ari', body: lockMine }, homeBase);
   ACT.resumeSetup = () => { const s = S(); if (!s.lock || s.lock.by !== 'me') { s.lock = { by: 'me', at: Date.now() }; } window.save(); go(s.setupStep || 'SB28'); };
 
   /* ---------- Running homes ---------- */
-  function runCard(mine) {
+  function runHome() {
     const bb = b(); if (!bb) return '';
-    return '<div class="card mt12" style="padding:16px"><div class="row" style="justify-content:space-between"><div class="h2">' + bb.fish + '</div>' + U.heatChip(bb) + '</div>' +
-      '<p class="p muted mt4">' + (mine ? 'Ikaw ang nagsimula.<br>' + H.esc(H.me()) + ' • ' + H.dur(bb.h) : 'Sinimulan ni ' + bb.starter + ', ' + H.dur(bb.h)) + '</p>' +
-      '<p class="p mt8">Ngayon: <b>' + H.kg(M.weight(bb)) + ' kg</b> → Target: ' + H.kg(bb.target) + ' kg<br><span class="muted">Una: ' + H.kg(bb.initial) + ' kg</span></p>' +
-      '<div class="mt8">' + U.bar(M.pct(bb)) + '</div><p class="small muted mt8">' + M.pct(bb) + '% • ' + M.temp(bb) + '°C • Halumigmig ' + M.hum(bb) + '%</p><p class="small blue mt4">Tantiya: ' + H.dur(M.remaining(bb)) + ' pa</p>' +
-      '<div class="mt12">' + U.btn('SUBAYBAYAN ANG BATCH', 'sbMonitor') + '</div></div>';
+    const mine = bb.starter === H.me();
+    return U.dashCard() + note(mine ? 'user' : 'users', mine ? '<b>Ikaw ang nagsimula</b> ng batch na ito.' : 'Sinimulan ni <b>' + bb.starter + '</b>. Sa Makina  galing ang pinakabagong tala.') + SC['06'].body().replace(U.dashCard(), '') + freshRow();
   }
-  SC.SB19 = Object.assign({ name: 'SB19_Home_Running_Other', body: () => compactHeader() + U.powerBanner() + runCard(false) + freshRow() }, homeBase);
-  SC.SB20 = Object.assign({ name: 'SB20_Home_Running_Mine', body: () => compactHeader() + U.powerBanner() + runCard(true) + freshRow() }, homeBase);
-  SC.SB13 = Object.assign({ name: 'SB13_Nav_Bagong_Batch_Bawal (nav component)', body: () => compactHeader() + runCard(b() && b().starter === H.me()) + '<div class="mt12">' + U.banner('warn', 'lock', 'Naka-kandado ang Bagong Batch', 'Habang may batch, ang gitnang pindutan ay nagiging "May Batch".') + '</div>' }, homeBase);
-  SC.SB04 = Object.assign({
-    name: 'SB04_Tahanan_Tumatakbo', body: () => {
-      const bb = b() || { fish: 'Galunggong', starter: 'Mang Jun', h: 4.08, initial: 26.4, target: 17.2, temp: 68, mode: 'Kuryente', heat: 'on' };
-      return sbHeader({ greet: 'May tumatakbong Batch' }) + '<div class="card mt12 tap listrow" data-act="sbMonitor" style="padding:12px">' + U.ring(M.pct(bb)) + '<div class="grow"><b style="color:var(--navy)">' + bb.fish + '</b><div class="big" style="font-size:1.75rem">' + H.kg(M.weight(bb)) + ' kg</div><div class="small muted">' + H.dur(bb.h) + ' • Kasalukuyan</div></div><span class="blue">' + ic('chevron-right', 20) + '</span></div>' + quick() +
-        '<div class="card soft mt16 listrow" style="padding:8px 12px"><span class="blue">' + ic('info', 20) + '</span><span class="small">Sinimulan ni ' + bb.starter + '. Sa Makina  galing ang pinakabagong tala.</span></div>';
-    }
-  }, homeBase);
-
+  SC.SB19 = Object.assign({ name: 'SB19_Home_Running_Other', body: runHome }, homeBase);
+  SC.SB20 = Object.assign({ name: 'SB20_Home_Running_Mine', body: runHome }, homeBase);
+  SC.SB04 = Object.assign({ name: 'SB04_Tahanan_Tumatakbo', body: runHome }, homeBase);
+  SC.SB13 = Object.assign({ name: 'SB13_Nav_Bagong_Batch_Bawal (nav component)', body: runHome }, homeBase);
+  ACT.sbMonitor = () => { if (isOn()) return go(H.monitorId()); go('SB54'); };
   /* ---------- Waiting-for-removal homes ---------- */
   function waitCard(kind) {
     const r = (S().waiting && S().waiting.rec) || S().history[0];
     const done = kind === 'done';
-    return compactHeader() + '<div class="card mt12" style="padding:16px">' + (done ? '<span class="tag-ok">' + ic('circle-check', 16) + 'Tapos na</span>' : '<span class="tag-danger">' + ic('pause', 16) + 'Ihininto</span>') +
+    return U.dashCard() + '<div class="card mt12" style="padding:16px">' + (done ? '<span class="tag-ok">' + ic('circle-check', 16) + 'Tapos na</span>' : '<span class="tag-danger">' + ic('pause', 16) + 'Ihininto</span>') +
       '<div class="h2 mt12">' + r.fish + '</div><p class="p dangerc mt4" style="font-weight:600">Hindi pa naaalis ang isda sa makina.</p>' +
       '<p class="p mt8">Una: ' + H.kg(r.initial) + ' kg → Huli: <b>' + H.kg(r.final) + ' kg</b></p><p class="small muted mt4">' + (done ? 'Naabot ang target na ' + H.kg(r.target) + ' kg.' : 'Hindi naabot ang target na ' + H.kg(r.target) + ' kg.') + '</p><p class="small muted mt4">' + (done ? 'Kabuuang tagal: ' : 'Tagal bago ihinto: ') + H.dur(r.hours) + '</p>' +
-      '<div class="mt12">' + U.banner('warn', 'hand', '', 'Palamigin muna  ang makina bago alisin ang isda.').replace('<div class="t"></div><div class="p mt4">', '<div class="p">') + '</div><div class="mt12">' + U.btn('NAALIS NA ANG ISDA', 'toRemoval') + '</div></div>' + freshRow();
+      '<div class="mt12">' + U.banner('warn', 'hand', '', 'Palamigin muna  ang makina bago alisin ang isda.').replace('<div class="t"></div><div class="p mt4">', '<div class="p">') + '</div>' + '<div class="mt12">' + U.btn('NAALIS NA ANG ISDA', 'toRemoval') + '</div></div>' + U.homeCards(true);
   }
   SC.SB23 = Object.assign({ name: 'SB23_Home_Waiting_Natapos', body: () => waitCard('done') }, homeBase);
   SC.SB24 = Object.assign({ name: 'SB24_Home_Waiting_Ihininto', body: () => waitCard('stopped') }, homeBase);
@@ -246,15 +217,11 @@
     enter: () => { if (!isOn()) go(SB.homeId(), { replace: true }); },
     body: () => {
       const bb = b(); if (!bb) return '';
-      return '<div class="card soft listrow" style="padding:8px 12px;min-height:40px"><span class="okc">' + ic('circle-check', 20) + '</span><b class="grow" style="color:var(--navy)">Makina AGAP-001</b>' + U.heatChip(bb) + '</div>' +
-        '<div class="h2 mt12">' + bb.fish + '</div><div class="small muted mt4">Sinimulan ni ' + bb.starter + ' · SUBAD</div><div class="small muted">Lumipas: ' + H.dur(bb.h) + '</div>' + U.powerBanner() +
-        '<div class="mt12">' + U.metrics(bb, true) + '</div>' +
-        '<div class="card mt8"><p class="p">Una: ' + H.kg(bb.initial) + ' kg → Target: ' + H.kg(bb.target) + ' kg</p><div class="mt8">' + U.bar(M.pct(bb)) + '</div><div class="blue mt8">' + M.pct(bb) + '% ng dapat mabawas</div></div>' +
-        '<div class="row mt8" style="gap:8px"><button class="card soft tap" data-go="15A" style="flex:1;height:56px;display:flex;align-items:center;justify-content:center;gap:6px"><span class="blue">' + ic('chart-line', 18) + '</span><b class="blue small">Grap</b></button><button class="card soft tap" data-act="supplyTap" style="flex:1;height:56px;display:flex;align-items:center;justify-content:center;gap:6px"><span class="blue">' + ic(U.supplyIcon(M.supply()), 18) + '</span><b class="blue small">' + M.supply() + '</b></button><button class="card soft tap" data-act="navAbiso" style="flex:1;height:56px;display:flex;align-items:center;justify-content:center;gap:6px"><span class="blue">' + ic('bell', 18) + '</span><b class="blue small">Abiso</b></button></div>' +
-        '<p class="tiny muted mt12">Mula sa Makina: basahin  pagkakonekta at bago kumilos. Sinumang naka-login sa SUBAD ay puwedeng maghinto.</p>';
+      return SC['15'].body().replace('Sinimulan ni ' + bb.starter + ' · ', 'Sinimulan ni ' + bb.starter + ' · SUBAD · ') + '<p class="tiny muted mt12">Mula sa Makina ang tala. Sinumang naka-login sa SUBAD ay puwedeng maghinto.</p>';
     },
-    actions: () => U.btn('Ihinto ang Batch', 'sbAskStop', 'danger')
+    actions: () => U.btn('Ihinto', 'sbAskStop', 'danger')
   };
+  const origAskStop = ACT.askStop; ACT.askStop = () => (S().scenario === 'shared' ? ACT.sbAskStop() : origAskStop());
   ACT.sbAskStop = () => openOverlay(b() && b().starter === H.me() ? 'SB41' : 'SB06');
   SC.SB06 = { name: 'SB06_Ihinto_May_Pangalan', sheet: () => { const bb = b() || { starter: other() }; return '<div class="stack"><span style="width:14px;height:14px;border-radius:3px;background:var(--danger);display:block"></span><div class="h1">Ihihinto  ba ang Batch na sinimulan ni ' + bb.starter + '?</div><p class="p">Titigil  ang pag-init. Hindi pa makakapagsimula ng bagong Batch hangga’t may isda pa sa Makina.</p>' + U.banner('warn', 'users', '', 'Kahit sinong naka-login sa SUBAD ay puwede . Basahin muna ang lagay sa Makina bago ihinto.').replace('<div class="t"></div><div class="p mt4">', '<div class="p">') + U.btn('OO, IHINTO', 'doStop') + U.btn('HINDI', 'close', 'secondary') + '</div>'; } };
   SC.SB41 = { name: 'SB41_Stop_Mine', sheet: () => { const bb = b(); if (!bb) return ''; return '<div class="stack"><span style="width:14px;height:14px;border-radius:3px;background:var(--danger);display:block"></span><div class="h1">Ihinto ang batch mo?</div><p class="p">Sinimulan mo , ' + H.esc(H.me()) + '.</p><p class="p muted">' + bb.fish + ' • ' + H.kg(M.weight(bb)) + ' kg • Tumakbo na: ' + H.dur(bb.h) + '</p>' + U.banner('info', 'users', '', 'Makikita ito ng lahat ng gumagamit ng makina.').replace('<div class="t"></div><div class="p mt4">', '<div class="p">') + U.btn('OO, IHINTO', 'doStop') + U.btn('HINDI', 'close', 'secondary') + '</div>'; } };
@@ -305,15 +272,17 @@
     const bb = b();
     return U.hero('unplug', { size: 'm' }) + '<div class="mt12">' + U.chip('plug-zap', 'Walang kuryente', '') + '</div>' +
       (bb ? '<p class="small muted mt8">Walang kuryente · SUBAD AGAP-001<br>' + bb.starter + ' · ' + bb.fish + ' · ' + H.kg(bb.initial) + ' kg → ' + H.kg(bb.target) + ' kg<br>Lumipas: ' + H.dur(bb.h) + '</p>' : '') +
-      '<div class="mt12">' + U.banner(bio ? 'warn' : 'info', bio ? 'flame' : 'pause', 'Nasagot na ni ' + other() + ': ' + (bio ? 'Itinuloy sa biomass.' : 'Itinigil ang pag-init.'), bio ? 'Kumpirmahin muna  ang paghahanda bago simulan ang pag-init sa biomass.' : 'Patuloy  ang pagsubaybay.') + '</div>' + U.batCard(bb) +
+      '<div class="mt12">' + U.banner(bio ? 'warn' : 'info', bio ? 'flame' : 'pause', 'Nasagot na ni ' + other() + ': ' + (bio ? 'Itinuloy sa biomass.' : 'Itinigil ang pagpapatuyo.'), bio ? 'Kumpirmahin muna  ang paghahanda bago simulan ang pag-init sa biomass.' : 'Naitala sa Rekord. Alisin ang isda kapag malamig na.') + '</div>' + (bb ? U.batCard(bb) : '') +
       (bio ? '<p class="small muted mt12">Tingnan ang mga kagamitan at kuryente bago magpatuloy.</p>' : '');
   }
-  SC.SB42 = { name: 'SB42_Power_Biomass_Alert', bar: { title: 'Suplay ng makina', back: () => go(SB.homeId()) }, live: true, back: () => go(SB.homeId()), body: () => powerOther(true), actions: () => U.btn('TINGNAN ANG BIOMASS', ':20') };
-  SC.SB44 = { name: 'SB44_Power_Itigil_Alert', bar: { title: 'Suplay ng makina', back: () => go(SB.homeId()) }, live: true, back: () => go(SB.homeId()), body: () => powerOther(false), actions: () => U.btn('SUBAYBAYAN ANG BATCH', ':SB05') };
-  SC.SB43 = { name: 'SB43_Power_Biomass_Sheet', base: '18', scrimClose: false, sheet: () => '<div class="stack">' + U.chip('flame', 'Nasagot na ni ' + other(), 'warn') + '<div class="h1">Itinuloy sa biomass.</div><p class="p">Kumpirmahin muna  ang paghahanda bago simulan ang pag-init sa biomass.</p><p class="p dangerc" style="font-weight:600">Huwag muna mag-init.</p>' + U.btn('TINGNAN ANG BIOMASS', 'sheetTo20') + '</div>' };
-  SC.SB45 = { name: 'SB45_Power_Itigil_Sheet', base: '18', scrimClose: false, sheet: () => '<div class="stack">' + U.chip('pause', 'Nasagot na ni ' + other(), '') + '<div class="h1">Itinigil ang pag-init.</div><p class="p">Patuloy  ang pagsubaybay.</p>' + U.btn('SUBAYBAYAN ANG BATCH', 'sheetToSB05') + '</div>' };
+  SC.SB42 = { name: 'SB42_Power_Biomass_Alert', bar: { title: 'Suplay ng makina', back: () => go(SB.homeId()) }, live: true, back: () => go(SB.homeId()), body: () => powerOther(true), actions: () => U.btn('TINGNAN ANG BIOMASS', 'toBioPrep') };
+  ACT.toBioPrep = () => { window.closeOverlay(); S().altMode = 'Biomass'; S().prep = null; window.save(); go('20'); };
+  SC.SB44 = { name: 'SB44_Power_Itigil_Alert', bar: { title: 'Suplay ng makina', back: () => go(SB.homeId()) }, live: true, back: () => go(SB.homeId()), body: () => powerOther(false), actions: () => U.btn('TINGNAN ANG REKORD', ':SB46') };
+  SC.SB43 = { name: 'SB43_Power_Biomass_Sheet', base: '18', scrimClose: false, sheet: () => '<div class="stack">' + U.chip('flame', 'Nasagot na ni ' + other(), 'warn') + '<div class="h1">Itinuloy sa biomass.</div><p class="p">Kumpirmahin muna  ang paghahanda bago simulan ang pag-init sa biomass.</p><p class="p dangerc" style="font-weight:600">Huwag muna mag-init.</p>' + U.btn('TINGNAN ANG BIOMASS', 'toBioPrep') + '</div>' };
+  SC.SB45 = { name: 'SB45_Power_Itigil_Sheet', base: '18', scrimClose: false, sheet: () => '<div class="stack">' + U.chip('pause', 'Nasagot na ni ' + other(), '') + '<div class="h1">Itinigil ang pagpapatuyo.</div><p class="p">Naitala sa Rekord.</p>' + U.btn('TINGNAN ANG REKORD', 'sheetToRek') + '</div>' };
   ACT.sheetTo20 = () => { window.closeOverlay(); go('20'); };
   ACT.sheetToSB05 = () => { window.closeOverlay(); go('SB05'); };
+  ACT.sheetToRek = () => { window.closeOverlay(); go('SB46'); };
 
   /* ---------- History SB10, SB46, SB47, SB52 ---------- */
   SC.SB46 = {
@@ -334,7 +303,7 @@
     name: 'SB52_History_Ihininto_Detail', bar: { title: 'Buod ng Batch', back: () => go(S().scenario === 'shared' ? 'SB10' : '25') }, nav: 'rekord', back: () => go(S().scenario === 'shared' ? 'SB10' : '25'),
     body: () => {
       const r = S().history.find((x) => x.id === S().viewRec && x.status !== 'done') || S().history.find((x) => x.status !== 'done') || { fish: 'Galunggong', date: '8 Nobyembre 2026', initial: 26.4, final: 21.8, target: 17.2, hours: 4.08, mode: 'Kuryente', starter: 'Mang Jun', temp: 68, stopAt: .645, stoppedBy: other() };
-      return '<div class="row" style="justify-content:space-between"><div><div class="h2">' + r.fish + '</div><div class="small muted mt4">' + r.date + '</div></div>' + U.chip(U.supplyIcon(r.mode), r.mode, 'blue') + '</div>' +
+      return '<div class="row" style="justify-content:space-between"><div><div class="h2">' + r.fish + '</div><div class="small muted mt4">' + r.date + '</div></div>' + U.chip(U.supplyIcon(r.mode), U.modeLabel(r.mode), 'blue') + '</div>' +
         '<div class="card mt12"><div class="h1">' + H.kg(r.initial) + ' → ' + H.kg(r.final) + ' kg</div><p class="p mt8">Tagal: ' + H.dur(r.hours) + '</p><p class="p mt4">Karaniwang init: ' + r.temp + '°C</p><div class="row mt8"><span class="tag-danger">Ihininto</span><span class="muted">Sinimulan ni ' + r.starter + '</span></div></div>' +
         '<div class="card mt8"><div class="h3">Timbang (kg)</div><div class="mt8">' + U.graph({ initial: r.initial, target: r.target, dur: r.hours / (r.stopAt || .6), h: r.hours, stopAt: r.stopAt || .6, xlabels: [0, '1 oras', '2 oras', H.dur(r.hours)] }) + '</div><p class="p muted mt8">Oras ng pagpapatuyo</p></div>' +
         '<div class="card mt8"><b style="color:var(--navy)">Ihininto ni ' + (r.stoppedBy || other()) + '</b><p class="p mt8">Target: ' + H.kg(r.target) + ' kg, hindi naabot.<br>Naalis na  ang isda.<br><span class="muted">AGAP-001 · Para sa lahat ng cellphone.</span></p></div>';
@@ -408,9 +377,9 @@
     },
     oItigil: () => {
       const s = S(); if (!isOn() || s.power !== 'none') return toast('Gamitin kapag walang kuryente at may batch', 'info');
-      b().heat = 'stopped'; s.otherDecision = 'stop'; window.save();
-      if (window.curScreen() === '18') return openOverlay('SB45');
-      notify({ icon: 'pause', tone: 'info', title: 'Nasagot na ni ' + other(), desc: 'Itinigil ang pag-init. Patuloy ang pagsubaybay.', go: 'SB44', cta: 'Tingnan' }); go('SB44');
+      const rec = H.stopBatch(other(), 'Walang kuryente'); s.waiting = { kind: 'stopped', rec: rec }; s.otherDecision = 'stop'; window.save();
+      if (window.curScreen() === '18') { go('SB44'); return openOverlay('SB45'); }
+      notify({ icon: 'pause', tone: 'info', title: 'Nasagot na ni ' + other(), desc: 'Itinigil ang pagpapatuyo. Naitala sa Rekord.', go: 'SB44', cta: 'Tingnan' }); go('SB44');
     },
     oRace: () => { const s = S(); if (s.lock && s.lock.by === 'me') { s.raceBatchNext = true; window.save(); return toast('Pagkumpirma mo, mauunahan ka ni ' + other(), 'info'); } s.raceNext = true; window.save(); toast('Sa susunod na Bagong Batch, mauunahan ka ni ' + other(), 'info'); },
     myTimeout: () => { const s = S(); if (!s.lock || s.lock.by !== 'me') return toast('Wala kang hawak na kandado', 'info'); s.lock = null; s.setupStep = null; window.save(); go('SB32'); },

@@ -1,41 +1,45 @@
 AGAP – Interactive HTML Prototype
 =================================
 
-HOW TO OPEN
-  1. Unzip the folder.
-  2. Double-click index.html (Chrome or Edge recommended). No internet or installation needed.
-  On a laptop it shows inside a phone frame. On a phone (if you copy the folder there) it fills the screen.
+LIVE LINKS (after GitHub Pages is on)
+  App (give this to the tester's phone):  https://rovilc.github.io/AGAP-MobApp-Prototype/
+  Remote controller (your own device):    https://rovilc.github.io/AGAP-MobApp-Prototype/controller.html
+
+OPEN OFFLINE
+  Unzip and double-click index.html (Chrome or Edge). Remote control needs internet, so it won't work offline.
+
+DEMO ACCOUNT
+  Username: MangJun    PIN: 123456
+  Or tap "Gumawa ng account" to create one (username, phone number, Samahan, 6-digit PIN typed twice).
+  The PIN uses the phone's own number keyboard. 3 wrong tries = 1-minute lock.
 
 CHOOSE A DEMO (first screen)
-  • Orihinal na daloy – one phone: Start → Login → Connect (Wi-Fi first, Bluetooth fallback) → Dashboard →
-    Bagong Batch → Subaybayan → power cut → biomass → Tuyo na → Rekord.
-  • Shared Batch – several phones on one machine (SUBAD / AGAP-001): operator name, setup lock,
-    and actions by "Ate Lita" from another phone (triggered from the facilitator panel).
+  • Orihinal na daloy – one phone.
+  • Shared Batch – several phones on one machine. Uses the same screens as the original flow, plus
+    "who started it" / setup-lock info and actions from "Ate Lita" on another phone.
 
-LOGIN
-  Samahan: SUBAD   PIN: 123456
-  (Tapping "Tapos" on an empty keypad fills the demo PIN, as in Figma. 3 wrong PINs = 1-minute lock.)
+DRYING CLOCK
+  A whole batch (6 h 20 min) runs in about 30 seconds by default. You can change it in the facilitator panel or the controller.
 
-FACILITATOR PANEL (hidden from testers)
-  Open it by: long-pressing any AGAP logo, OR pressing ` (backtick) / F2, OR tapping the clock 3 times,
-  OR hovering the right edge of the window.
-  From there you can:
-    – Trigger a power cut (shows an Android-style notification the tester must interpret), restore power,
-      low battery, biomass temperature drop, overheating, door open, machine problem, emergency stop,
-      lost connection, session expired, insufficient power, rainy weather.
-    – Change the drying-clock speed (Figma ~50 s, ~3 min [default], ~8 min, ~20 min, real 6 h 20 min),
-      skip +1 hour, or finish the batch immediately.
-    – Shared Batch: simulate Ate Lita locking setup, starting/stopping a batch, removing fish,
-      answering the power-cut question, race conditions, setup timeout, sync failure, offline records.
-    – Jump to any screen, switch scenario, or RESET THE DEMO (do this between testers).
-  Figma's hidden hotspot is kept: the top-right corner of the Dashboard while a batch is running = instant power cut.
+POWER CUT FLOW
+  Power cut → notification → "Ano ang susunod?" → "Ipagpapatuloy ba ang pagpapatuyo?"
+    • HINDI, ITIGIL → the batch stops and the app opens Rekord, with the stopped batch on top.
+    • OO, ITULOY → choose Araw (Solar) or Biomass → setup checklist. The start button stays locked until every item is ticked.
+  When power comes back, the app asks whether to switch back to electric heating.
 
-KEYBOARD SHORTCUTS (same keys as the Figma prototype)
-  Esc back · H overheat · D door open · E machine problem / weighing error · L connection lost ·
-  X session expired · A batch already running · V invalid values · F next start fails ·
-  R records not found · N no new notifications · P allow notifications
+REMOTE CONTROL (trigger events from your own phone or laptop)
+  1. Open the app on the tester's phone. The first screen shows "Remote code: 1234 · handa". The code is also in the facilitator panel.
+  2. On your own device, open controller.html, type the code, and tap "Ikonekta".
+  3. The controller shows the tester's current screen, batch % and power. Its buttons trigger the power cut, low battery,
+     temperature drop, overheating, door open and other events, plus Ate Lita's actions, clock speed, jump to screen and reset.
+  Both devices need internet. Messages go through a free public relay (no account needed). They carry only demo commands,
+  no personal data. If the venue Wi-Fi blocks it, try mobile data.
 
-NOTES
-  • The app remembers progress in the browser (login with "Tandaan ako", batches, records, settings).
-    Use "I-reset ang demo" in the facilitator panel to start fresh.
-  • Sound/vibration for notifications can be turned off in Higit pa → Mga Ayos.
+FACILITATOR PANEL (on the tester's phone)
+  Long-press any AGAP logo, tap the clock 3 times, or press ` / F2 on a laptop.
+
+KEYBOARD SHORTCUTS (laptop, same as Figma)
+  Esc back · H overheat · D door open · E machine problem · L connection lost · X session expired ·
+  A batch already running · V invalid values · F next start fails · R records not found · N no new notifications · P allow notifications
+
+TIP: Use "I-reset ang demo" between testers. The remote code stays the same after a reset.
