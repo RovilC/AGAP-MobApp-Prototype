@@ -1,45 +1,59 @@
 AGAP – Interactive HTML Prototype
-=================================
+===========================================
 
-LIVE LINKS (after GitHub Pages is on)
-  App (give this to the tester's phone):  https://rovilc.github.io/AGAP-MobApp-Prototype/
-  Remote controller (your own device):    https://rovilc.github.io/AGAP-MobApp-Prototype/controller.html
+LIVE LINKS (GitHub Pages)
+  App (tester's phone):              https://rovilc.github.io/AGAP-MobApp-Prototype/
+  Remote controller (your device):   https://rovilc.github.io/AGAP-MobApp-Prototype/controller.html
 
 OPEN OFFLINE
-  Unzip and double-click index.html (Chrome or Edge). Remote control needs internet, so it won't work offline.
+  Unzip and double-click index.html (Chrome or Edge). Offline, there is no live machine,
+  so switch the temperature source to "Simulated" in the facilitator panel.
 
 DEMO ACCOUNT
   Username: MangJun    PIN: 123456
-  Or tap "Gumawa ng account" to create one (username, phone number, Samahan, 6-digit PIN typed twice).
-  The PIN uses the phone's own number keyboard. 3 wrong tries = 1-minute lock.
+  Or tap "Create account" (username, numero ng telepono, samahan, 6-digit PIN typed twice).
 
-CHOOSE A DEMO (first screen)
-  • Orihinal na daloy – one phone.
-  • Shared Batch – several phones on one machine. Uses the same screens as the original flow, plus
-    "who started it" / setup-lock info and actions from "Ate Lita" on another phone.
+LANGUAGE
+  Screens are in Tagalog. Buttons and short replies are in English (Yes, No, Confirm, Start, Stop...).
+  Technical words stay in English (Temperature, Heater, Sensor, Wi-Fi).
 
-DRYING CLOCK
-  A whole batch (6 h 20 min) runs in about 30 seconds by default. You can change it in the facilitator panel or the controller.
+FLOW
+  Choose demo -> Log in -> "Kumonekta sa makina" (choose Wi-Fi or Bluetooth, select AGAP-001, tap CONNECT)
+  -> "Kumokonekta…" (checks internet, machine and temperature sensor) -> Home.
+  This happens on every login, and it always connects. If the ESP32 is sending data the
+  temperature is live; if not, the app continues with a simulated reading labelled "SIMULATED"
+  and switches to live by itself as soon as the machine's data arrives.
 
-POWER CUT FLOW
-  Power cut → notification → "Ano ang susunod?" → "Ipagpapatuloy ba ang pagpapatuyo?"
-    • HINDI, ITIGIL → the batch stops and the app opens Rekord, with the stopped batch on top.
-    • OO, ITULOY → choose Araw (Solar) or Biomass → setup checklist. The start button stays locked until every item is ticked.
-  When power comes back, the app asks whether to switch back to electric heating.
+CHAMBER TEMPERATURE (live)
+  The Home and Monitor screens show the real chamber temperature from the machine's SHT31 sensor.
+  Path: SHT31 -> ESP32 -> Wi-Fi/internet -> MQTT relay -> app (updates every 2 seconds).
+  - 75°C or more: yellow "near limit" warning + alert.
+  - 80°C: the ESP32 turns the heater OFF by itself (red alert). It turns back on below 75°C.
+  - Sensor fault: the app shows the error and the machine keeps its heater off.
+  - No live data for 10 s: the app says so and continues with the labelled simulated reading.
+  Humidity and weight are still simulated in this prototype.
 
-REMOTE CONTROL (trigger events from your own phone or laptop)
-  1. Open the app on the tester's phone. The first screen shows "Remote code: 1234 · handa". The code is also in the facilitator panel.
-  2. On your own device, open controller.html, type the code, and tap "Ikonekta".
-  3. The controller shows the tester's current screen, batch % and power. Its buttons trigger the power cut, low battery,
-     temperature drop, overheating, door open and other events, plus Ate Lita's actions, clock speed, jump to screen and reset.
-  Both devices need internet. Messages go through a free public relay (no account needed). They carry only demo commands,
-  no personal data. If the venue Wi-Fi blocks it, try mobile data.
+TEMPERATURE SOURCE (facilitator only)
+  Live (default): real readings from the ESP32. Needs the firmware in /firmware flashed and online.
+  Simulated: for testing without a machine. Clearly labelled "SIMULATED (pang-test)" on screen.
+  "Simulate overheat" pushes the simulated chamber to 80°C to test the cutoff alerts.
 
-FACILITATOR PANEL (on the tester's phone)
-  Long-press any AGAP logo, tap the clock 3 times, or press ` / F2 on a laptop.
+ALERTS
+  Unread critical = red, unread "needs attention" = yellow, unread info = blue.
+  Opened alerts return to the normal white style.
 
-KEYBOARD SHORTCUTS (laptop, same as Figma)
-  Esc back · H overheat · D door open · E machine problem · L connection lost · X session expired ·
-  A batch already running · V invalid values · F next start fails · R records not found · N no new notifications · P allow notifications
+FACILITATOR CONTROLS
+  Hidden panel: long-press the logo, or press ` / F2 on a keyboard.
+  Remote: open controller.html on another device and enter the 4-digit code shown on the app's
+  first screen. You can trigger power cuts, switch the temperature source, change the clock speed,
+  jump to any screen, and act as "Ate Lita" in the Shared Batch demo.
 
-TIP: Use "I-reset ang demo" between testers. The remote code stays the same after a reset.
+DEMO MODES
+  Original flow – one phone, one machine.
+  Shared batch – several phones share one machine (setup lock, who started it, etc.).
+
+RESET
+  Facilitator panel -> Reset demo (tap twice). Data is kept in the browser until reset.
+
+MACHINE FIRMWARE
+  See firmware/README.md.

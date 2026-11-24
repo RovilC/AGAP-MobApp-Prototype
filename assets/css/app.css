@@ -298,3 +298,57 @@ input{font:inherit}
 .lock-badge{display:inline-flex;align-items:center;gap:6px;background:#fff1d6;color:#7a4a00;border-radius:12px;padding:6px 10px;font-weight:700;font-size:.8125rem}
 
 .input input::placeholder{letter-spacing:0;color:#8a99b5}
+
+/* ---------- Nov 21 revision ---------- */
+/* Bigger, clearer back button */
+.appbar .back{width:46px;height:46px;margin-left:-4px;margin-right:4px;border-radius:14px;background:var(--pale);border:1.5px solid var(--sky);color:var(--blue);flex:none}
+.appbar .back svg{width:26px;height:26px}
+.appbar .back:active{background:var(--sky)}
+/* Notifications: unread critical = red, warning = yellow, info = blue; read = default white */
+.notif.unread.t-critical{background:#fdecea;border:1.5px solid #f3a29b}
+.notif.unread.t-critical .ico{color:var(--danger)}
+.notif.unread.t-critical .u{background:var(--danger)}
+.notif.unread.t-warning{background:#fff4d1;border:1.5px solid #f5c542}
+.notif.unread.t-warning .ico{color:#b26a00}
+.notif.unread.t-warning .u{background:#e0a100}
+.notif.unread.t-info{background:var(--pale);border:1.5px solid #9cc8f5}
+.notif.unread .t{font-weight:800}
+.notif:not(.unread){background:#fff;border-color:var(--line)}
+.notif:not(.unread) .ico{background:#f1f4f8;color:var(--text2)}
+.notif:not(.unread) .t{font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.75rem;color:var(--text2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.legend .lg-c{background:#fdecea;border:1.5px solid #f3a29b}
+.legend .lg-w{background:#fff4d1;border:1.5px solid #f5c542}
+.legend .lg-r{background:#fff;border:1.5px solid var(--line)}
+/* Heads-up tints */
+.headsup .hic{width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--pale);color:var(--blue)}
+.headsup.critical{background:#fff5f4}
+.headsup.critical .hic{background:#fdecea;color:var(--danger)}
+.headsup.warning{background:#fffaea}
+.headsup.warning .hic{background:#fff4d1;color:#b26a00}
+.headsup.good .hic{background:#e3f4ec;color:var(--ok)}
+/* Banner icons */
+.banner .bi{flex:none;display:flex;color:var(--blue)}
+.banner.warn .bi{color:#b26a00}
+.banner.danger .bi{color:var(--danger)}
+.banner.ok .bi{color:var(--ok)}
+/* Chamber temperature card */
+.tempcard{border-width:1.5px}
+.tempcard.warn{border-color:#f5c542;background:#fffbef}
+.tempcard.danger{border-color:#f3a29b;background:#fff6f5}
+.tempcard.danger .huge{color:var(--danger)}
+.tempcard.warn .huge{color:#a86400}
+.tbar{position:relative;height:10px;border-radius:5px;background:linear-gradient(90deg,#bbdefb 0%,#90caf9 55%,#f5c542 88%,#d93025 100%);overflow:visible}
+.tbar i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:rgba(10,42,102,.35);mix-blend-mode:multiply}
+.tbar em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--navy);border-radius:1px}
+.metric.bad{border-color:#f3a29b;background:#fff6f5}
+.metric.bad .val{color:var(--danger)}
+.metric.warnm{border-color:#f5c542;background:#fffbef}
+.metric.warnm .val{color:#a86400}
+.mini4 .m.bad{background:#fdecea}
+.mini4 .m.bad svg,.mini4 .m.bad .v{color:var(--danger)}
+.mini4 .m.warnm{background:#fff4d1}
+.mini4 .m.warnm svg,.mini4 .m.warnm .v{color:#a86400}
+.spacer{flex:1}

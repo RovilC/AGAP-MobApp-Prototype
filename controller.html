@@ -44,7 +44,7 @@ select{width:100%;background:#0b1428;color:#e7eefb;border:1px solid #2a3d69;bord
 <main>
   <div class="card">
     <h3>1 · Ilagay ang code mula sa cellphone ng tester</h3>
-    <div class="code"><input id="code" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off"><button id="connect" class="primary" style="width:120px">Ikonekta</button></div>
+    <div class="code"><input id="code" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off"><button id="connect" class="primary" style="width:120px">Connect</button></div>
     <p class="muted" style="margin:10px 0 0">Makikita ang code sa unang screen ng app (Pumili ng demo) o sa facilitator panel. Kailangan ng internet ang dalawang device.</p>
   </div>
 
@@ -54,52 +54,57 @@ select{width:100%;background:#0b1428;color:#e7eefb;border:1px solid #2a3d69;bord
   </div>
 
   <div id="controls" class="hide">
+    <div class="card"><h3>Pinagmulan ng temperature</h3><div class="grid">
+      <button class="good" data-k="srcLive">Live machine<small>totoong SHT31 reading mula sa ESP32</small></button>
+      <button data-k="srcSim">Simulated<small>pang-test, kahit walang makina</small></button>
+      <button class="hot" data-k="simOver">Simulate overheat<small>simulated lang · test ng 80°C cutoff</small></button>
+    </div></div>
+
     <div class="card"><h3>Kuryente at baterya</h3><div class="grid">
-      <button class="hot" data-k="cut">⚡ Nawalan ng kuryente<small>abiso + tanong kung itutuloy</small></button>
-      <button class="good" data-k="back">Bumalik ang kuryente<small>tanong kung lilipat</small></button>
-      <button data-k="lowbat">Mahina ang baterya<small>15%</small></button>
-      <button data-k="drop">Bumaba ang init<small>biomass / solar</small></button>
-      <button data-k="insuff">Hindi sapat ang kuryente<small>bago magsimula</small></button>
-      <button data-k="S06">Bukas ang pinto</button>
+      <button class="hot" data-k="cut">⚡ Power outage<small>abiso + tanong kung itutuloy</small></button>
+      <button class="good" data-k="back">Power back<small>tanong kung lilipat</small></button>
+      <button data-k="lowbat">Low battery<small>15%</small></button>
+      <button data-k="drop">Heat dropped<small>biomass / solar</small></button>
+      <button data-k="insuff">Not enough power<small>bago magsimula</small></button>
+      <button data-k="S06">Door open</button>
     </div></div>
 
     <div class="card"><h3>Makina at koneksyon</h3><div class="grid">
-      <button data-k="S05">Sobrang init</button>
-      <button data-k="S07">Problema sa makina</button>
-      <button data-k="emer">Pang-emerhensiyang paghinto</button>
-      <button data-k="lost">Nawala ang koneksyon</button>
-      <button data-k="S18">Tapos na ang session</button>
-      <button data-k="S14">Walang bagong abiso</button>
+      <button data-k="S07">Machine problem</button>
+      <button data-k="emer">Emergency stop</button>
+      <button data-k="lost">Connection lost</button>
+      <button data-k="S18">Session expired</button>
+      <button data-k="S14">No new alerts</button>
     </div></div>
 
     <div class="card"><h3>Orasan ng pagpapatuyo</h3>
       <select id="speed">
         <option value="demo30">Pang-test (~30 seg ang buong batch)</option>
-        <option value="figma">Figma demo (~50 seg)</option>
+        <option value="figma">Figma demo (~50 s)</option>
         <option value="fast">Mabilis (~3 min)</option>
         <option value="med">Katamtaman (~8 min)</option>
         <option value="slow">Mabagal (~20 min)</option>
         <option value="real">Totoong oras (6 oras 20 min)</option>
       </select>
-      <div class="grid" style="margin-top:8px"><button data-k="skip1">+1 oras</button><button data-k="finish">Tapusin ang batch</button></div>
+      <div class="grid" style="margin-top:8px"><button data-k="skip1">+1 hour</button><button data-k="finish">Finish batch</button></div>
     </div>
 
     <div id="sharedBox" class="card hide"><h3>Ibang cellphone (Ate Lita)</h3><div class="grid">
-      <button data-k="oLock">Nag-aayos si Ate Lita</button>
-      <button data-k="oLockEnd">Natapos ang kandado</button>
-      <button data-k="oStart">Nagsimula ng batch</button>
-      <button data-k="oStop">Inihinto ang batch</button>
-      <button data-k="oRemoved">Naalis na ang isda</button>
-      <button data-k="oBio">Sumagot: biomass</button>
-      <button data-k="oItigil">Sumagot: itigil</button>
-      <button data-k="oRace">Unahan sa pag-aayos</button>
-      <button data-k="myTimeout">Natapos ang 5 min mo</button>
-      <button data-k="syncFail">Hindi masuri ang makina</button>
+      <button data-k="oLock">Ate Lita is setting up</button>
+      <button data-k="oLockEnd">Her lock expired</button>
+      <button data-k="oStart">She started a batch</button>
+      <button data-k="oStop">She stopped the batch</button>
+      <button data-k="oRemoved">She removed the fish</button>
+      <button data-k="oBio">She answered: biomass</button>
+      <button data-k="oItigil">She answered: stop</button>
+      <button data-k="oRace">Race to set up</button>
+      <button data-k="myTimeout">Your 5 min ran out</button>
+      <button data-k="syncFail">Machine check fails</button>
     </div></div>
 
     <div class="card"><h3>Pumunta sa screen</h3>
       <select id="jump"><option value="">— kinukuha ang listahan… —</option></select>
-      <div class="grid" style="margin-top:8px"><button id="backBtn">← Bumalik (Android back)</button><button id="reset" class="hot">I-reset ang demo<small>pindutin nang 2 beses</small></button></div>
+      <div class="grid" style="margin-top:8px"><button id="backBtn">← Back (Android back)</button><button id="reset" class="hot">Reset demo<small>pindutin nang 2 beses</small></button></div>
     </div>
   </div>
 </main>
@@ -112,6 +117,11 @@ select{width:100%;background:#0b1428;color:#e7eefb;border:1px solid #2a3d69;bord
   try { $('code').value = localStorage.getItem('agap-ctrl-code') || ''; } catch (e) {}
   function flash(t) { const f = $('flash'); f.textContent = t; f.classList.add('show'); clearTimeout(f._t); f._t = setTimeout(() => f.classList.remove('show'), 1400); }
   function send(obj, label) { if (!cli || !cli.publish(base + '/cmd', JSON.stringify(obj))) { flash('Hindi pa nakakonekta'); return; } flash('Naipadala: ' + (label || obj.k || obj.t)); }
+  function chamber(l) {
+    const c = l.chamber || {}; const src = l.source === 'sim' ? ' <span style="color:#f6c26b">(SIMULATED)</span>' : ' (live)';
+    if (c.err) return 'Chamber: <b style="color:#ff8a80">' + c.err + '</b>' + src + '<br>';
+    return 'Chamber: <b style="color:' + (c.limit ? '#ff8a80' : c.warn ? '#f6c26b' : '#fff') + '">' + c.v + '°C</b> · heater ' + (c.heater ? 'on' : 'off') + (c.limit ? ' · <b>MAX 80°C</b>' : '') + src + '<br>';
+  }
   function render() {
     const online = last && Date.now() - lastAt < 7000;
     $('pill').textContent = !cli ? 'offline' : !cli.ok ? 'kumokonekta…' : online ? 'konektado sa cellphone' : 'hinihintay ang cellphone';
@@ -122,9 +132,9 @@ select{width:100%;background:#0b1428;color:#e7eefb;border:1px solid #2a3d69;bord
     $('stat').className = 'stat';
     $('stat').innerHTML = '<div class="big">' + (last.screen || '') + '</div>' +
       'Senaryo: <b>' + (last.scenario === 'shared' ? 'Shared Batch' : last.scenario === 'orig' ? 'Orihinal' : '—') + '</b> · ' + (last.loggedIn ? 'naka-login' : 'hindi pa naka-login') + '<br>' +
-      'Batch: <b>' + (b ? b.fish + ' · ' + b.pct + '% · ' + b.elapsed + ' · ' + b.status + ' · ' + b.mode : 'wala') + '</b><br>' +
-      'Kuryente: <b>' + (last.power === 'grid' ? 'may kuryente' : 'WALA') + '</b> · Baterya <b>' + last.battery + '%</b>' +
-      (last.scenario === 'shared' ? '<br>Kandado: <b>' + (last.lock || 'libre') + '</b>' + (last.waiting ? ' · naghihintay alisin ang isda' : '') : '') +
+      'Batch: <b>' + (b ? b.fish + ' · ' + b.pct + '% · ' + b.elapsed + ' · ' + b.status + ' · ' + b.mode : 'wala') + '</b><br>' + chamber(last) +
+      'Kuryente: <b>' + (last.power === 'grid' ? 'meron' : 'WALA') + '</b> · Baterya <b>' + last.battery + '%</b>' +
+      (last.scenario === 'shared' ? '<br>Kandado: <b>' + (last.lock || 'libre') + '</b>' + (last.waiting ? ' · hinihintay alisin ang isda' : '') : '') +
       (online ? '' : '<br><span style="color:#f6b26b">Walang balita mula sa cellphone. Bukas ba ang app at may internet?</span>');
     $('sharedBox').classList.toggle('hide', last.scenario !== 'shared');
     if (document.activeElement !== $('speed')) $('speed').value = last.speed || 'demo30';
@@ -149,9 +159,9 @@ select{width:100%;background:#0b1428;color:#e7eefb;border:1px solid #2a3d69;bord
     render();
   };
   document.querySelectorAll('[data-k]').forEach((b) => b.onclick = () => send({ t: 'fac', k: b.dataset.k }, b.firstChild.textContent.trim()));
-  $('speed').onchange = (e) => send({ t: 'speed', v: e.target.value }, 'bilis');
+  $('speed').onchange = (e) => send({ t: 'speed', v: e.target.value }, 'speed');
   $('jump').onchange = (e) => { if (e.target.value) { send({ t: 'go', s: e.target.value }, 'screen'); e.target.value = ''; } };
-  $('backBtn').onclick = () => send({ t: 'back' }, 'bumalik');
+  $('backBtn').onclick = () => send({ t: 'back' }, 'back');
   $('reset').onclick = () => { if (Date.now() - armed > 3000) { armed = Date.now(); flash('Pindutin ulit para i-reset'); return; } armed = 0; send({ t: 'reset' }, 'reset'); };
   $('code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('connect').click(); });
   if ($('code').value.length === 4 && /[?&]auto=1/.test(location.search)) $('connect').click();
